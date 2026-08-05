@@ -1,0 +1,20 @@
+{
+  "version": "0.3.0",
+  "managed_files": [
+    "jarvis.py",
+    "requirements.txt",
+    ".env.example",
+    "README.md",
+    "install.bat",
+    "run_jarvis.bat",
+    "list_devices.bat",
+    "text_test.bat",
+    "update_jarvis.bat",
+    "installer.ps1",
+    "version.json",
+    "manifest.json"
+  ],
+  "copy_if_missing": [
+    "config.json"
+  ]
+}

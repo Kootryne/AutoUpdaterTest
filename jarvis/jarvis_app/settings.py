@@ -88,6 +88,18 @@ class Settings:
     update_check_interval_seconds: int
     update_manifest_url: str
     update_source_zip_url: str
+    skill_planner_alias: str
+    skill_planner_model: str
+    skill_planner_reasoning: str
+    skill_builder_alias: str
+    skill_builder_model: str
+    skill_builder_reasoning: str
+    skill_runtime_model: str
+    skill_runtime_reasoning: str
+    skill_build_retries: int
+    skill_max_tests: int
+    skill_live_tests: bool
+    background_task_workers: int
     ha_url: str
     ha_token: str
 
@@ -147,6 +159,18 @@ class Settings:
                 "https://github.com/"
                 "Kootryne/AutoUpdaterTest/archive/refs/heads/main.zip",
             ).strip(),
+            skill_planner_alias=os.getenv("SKILL_PLANNER_ALIAS", "Sol").strip(),
+            skill_planner_model=os.getenv("SKILL_PLANNER_MODEL", "gpt-5.2").strip(),
+            skill_planner_reasoning=os.getenv("SKILL_PLANNER_REASONING", "high").strip(),
+            skill_builder_alias=os.getenv("SKILL_BUILDER_ALIAS", "Luna").strip(),
+            skill_builder_model=os.getenv("SKILL_BUILDER_MODEL", "gpt-5.1").strip(),
+            skill_builder_reasoning=os.getenv("SKILL_BUILDER_REASONING", "low").strip(),
+            skill_runtime_model=os.getenv("SKILL_RUNTIME_MODEL", "gpt-5.1").strip(),
+            skill_runtime_reasoning=os.getenv("SKILL_RUNTIME_REASONING", "low").strip(),
+            skill_build_retries=max(0, min(4, int(os.getenv("SKILL_BUILD_RETRIES", "2")))),
+            skill_max_tests=max(1, min(5, int(os.getenv("SKILL_MAX_TESTS", "2")))),
+            skill_live_tests=env_bool("SKILL_LIVE_TESTS", True),
+            background_task_workers=max(1, min(6, int(os.getenv("BACKGROUND_TASK_WORKERS", "3")))),
             ha_url=os.getenv("HOME_ASSISTANT_URL", "").strip().rstrip("/"),
             ha_token=os.getenv("HOME_ASSISTANT_TOKEN", "").strip(),
         )

@@ -69,7 +69,6 @@ The official included model is mainly trained for **Hey Jarvis**. Saying only
 - The first version uses console status and logs rather than a graphical overlay.
 - Log file: `logs\jarvis.log`
 
-
 ## Follow-up conversation filter
 
 After Jarvis answers, it still listens for a few seconds. The transcript is sent
@@ -91,7 +90,6 @@ Disable this behavior only for debugging:
 ```text
 FOLLOWUP_REQUIRE_INTENT=false
 ```
-
 
 ## GitHub installer and updates
 
@@ -127,3 +125,13 @@ Updates preserve:
 - `logs`
 
 The OpenAI API key and Home Assistant token are never uploaded to GitHub.
+
+## Code layout
+
+The program is split into a small `jarvis_app` package instead of one enormous
+script. `jarvis.py` remains the entry point, so the launch commands do not change.
+
+Version `0.3.1` restores both:
+
+- Windows Process/User/Machine API-key lookup;
+- strict follow-up intent filtering.

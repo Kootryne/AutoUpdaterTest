@@ -39,9 +39,6 @@ class LocalTTSManager:
         self._lock = threading.RLock()
 
     def backend(self) -> str:
-        configured = os.getenv("TTS_BACKEND", "").strip().lower()
-        if configured in {"cloud", "local"}:
-            return configured
         try:
             payload = json.loads(_STATE_FILE.read_text(encoding="utf-8"))
             backend = str(payload.get("backend", "")).strip().lower()
@@ -49,12 +46,14 @@ class LocalTTSManager:
                 return backend
         except Exception:
             pass
-        return "cloud"
+        configured = os.getenv("TTS_BACKEND", "cloud").strip().lower()
+        return configured if configured in {"cloud", "local"} else "cloud"
 
     def set_backend(self, backend: str) -> None:
         normalized = backend.strip().lower()
         if normalized not in {"cloud", "local"}:
             raise ValueError(f"Unsupported TTS backend: {backend}")
+        os.environ["TTS_BACKEND"] = normalized
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         temporary = _STATE_FILE.with_suffix(".tmp")
         temporary.write_text(

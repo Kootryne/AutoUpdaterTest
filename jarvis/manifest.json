@@ -1,7 +1,17 @@
 {
-  "version": "0.3.0",
+  "version": "0.3.1",
   "managed_files": [
     "jarvis.py",
+    "jarvis_app/__init__.py",
+    "jarvis_app/paths.py",
+    "jarvis_app/settings.py",
+    "jarvis_app/logging_utils.py",
+    "jarvis_app/audio.py",
+    "jarvis_app/home_assistant.py",
+    "jarvis_app/tools.py",
+    "jarvis_app/brain.py",
+    "jarvis_app/app.py",
+    "jarvis_app/main.py",
     "requirements.txt",
     ".env.example",
     "README.md",

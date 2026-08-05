@@ -1,137 +1,109 @@
-# Jarvis MVP
+# Jarvis Voice Assistant
 
-This Windows-first version contains the full basic loop:
+Windows-first Jarvis using:
 
-`openWakeWord -> record -> transcribe -> GPT/tools/web -> TTS -> follow-up`
+- openWakeWord's pretrained `hey_jarvis` model locally
+- `gpt-4o-mini-transcribe` for Swedish/English speech-to-text
+- `gpt-4.1-mini` for answers and tools
+- `gpt-4.1-nano` for uncertain follow-up routing
+- `gpt-4o-mini-tts` for speech
+- Home Assistant REST tools
 
-## Stack
+## Install and start
 
-- openWakeWord pretrained `hey_jarvis`, local and free
-- `gpt-4o-mini-transcribe`
-- `gpt-5-mini`
-- OpenAI web search and function tools
-- `gpt-4o-mini-tts`
-- Home Assistant REST API for lights
-
-## Install
-
-1. Use 64-bit Python 3.12.
-2. Double-click `install.bat`.
-3. The installer checks for `OPENAI_API_KEY` in the Windows Process, User, and Machine environment scopes.
-4. When no key is found, open `.env` and add one there.
-5. Optionally add your Home Assistant URL and long-lived token.
-6. Double-click `run_jarvis.bat`.
-7. Say **Hey Jarvis**, followed by the command.
-
-The first launch downloads the pretrained wake-word files.
-
-## Test typed requests first
-
-Double-click `text_test.bat`, or run:
-
-```bat
-.venv\Scripts\python.exe jarvis.py --text "Vad är klockan?"
-```
-
-## Select microphone or speaker
-
-Run `list_devices.bat`, then put numeric IDs in `.env`:
-
-```text
-MIC_DEVICE=4
-SPEAKER_DEVICE=7
-```
-
-Leave them blank to use Windows defaults.
-
-## Configure Home Assistant and applications
-
-Edit `config.json`. Tokens remain in `.env`.
-
-The default light aliases are:
-
-- `bedroom` -> `light.viktor`
-- `led_strip` -> `light.shellyrgbw2_49f5b9`
-
-## Wake-word tuning
-
-The official included model is mainly trained for **Hey Jarvis**. Saying only
-**Jarvis** may work, but is less reliable.
-
-- It misses you: lower `WAKE_THRESHOLD`, for example `0.42`
-- Random sounds wake it: raise it, for example `0.55`
-
-## Current limits
-
-- No speech interruption while Jarvis is talking yet.
-- Several nearby devices are not coordinated yet.
-- It is not packaged as an EXE yet.
-- The first version uses console status and logs rather than a graphical overlay.
-- Log file: `logs\jarvis.log`
-
-## Follow-up conversation filter
-
-After Jarvis answers, it still listens for a few seconds. The transcript is sent
-through a strict intent check before Jarvis responds again.
-
-It normally accepts:
-
-- a direct follow-up question;
-- a correction or clarification;
-- `yes`, `no`, or another answer when Jarvis asked you something;
-- contextual commands such as `make it darker`;
-- speech that directly says `Jarvis`.
-
-It ignores speech that appears to be aimed at another person or unrelated
-background conversation. When uncertain, it stays silent.
-
-Disable this behavior only for debugging:
-
-```text
-FOLLOWUP_REQUIRE_INTENT=false
-```
-
-## GitHub installer and updates
-
-The public source is stored in:
-
-```text
-Kootryne/AutoUpdaterTest/jarvis
-```
-
-For a fresh installation, download and run:
-
-```text
-install_jarvis.bat
-```
-
-The bootstrap file downloads the current `installer.ps1` directly from GitHub.
-The installer then downloads the latest repository snapshot and installs Jarvis
-to:
+The GitHub installer places Jarvis in:
 
 ```text
 %LOCALAPPDATA%\Jarvis
 ```
 
-Run `update_jarvis.bat` from the installed folder whenever you want to check for
-updates. It compares `version.json` and only updates when a newer project version
-is available.
+Normal startup is silent through `start_jarvis.vbs`. A desktop shortcut and a
+Windows Startup shortcut are created automatically. For visible debug logs, run:
 
-Updates preserve:
+```text
+%LOCALAPPDATA%\Jarvis\run_jarvis.bat
+```
 
-- `.env`
-- `config.json`
-- `.venv`
-- `logs`
+Useful controls:
 
-The OpenAI API key and Home Assistant token are never uploaded to GitHub.
+```text
+stop_jarvis.bat
+restart_jarvis.bat
+enable_startup.bat
+disable_startup.bat
+```
 
-## Code layout
+## Automatic updates
 
-The program is split into a small `jarvis_app` package instead of one enormous
-script. `jarvis.py` remains the entry point, so the launch commands do not change.
+Version 0.5.0 checks GitHub immediately at startup and every hour afterward. A
+new version downloads and validates in the background while Jarvis keeps
+listening. Jarvis applies it only while idle, then a separate helper swaps files
+and restarts the assistant.
 
-Version `0.3.1` restores both:
+Voice examples:
 
-- Windows Process/User/Machine API-key lookup;
-- strict follow-up intent filtering.
+```text
+Hey Jarvis, update.
+Jarvis, check for an update.
+Jarvis, uppdatera dig.
+```
+
+The update system preserves `.env`, `config.json`, `.venv`, and logs. It backs up
+managed files first and restores them if copying or dependency installation
+fails. Normal code-only updates should interrupt Jarvis only for the short
+restart; dependency changes may take longer.
+
+Settings:
+
+```text
+AUTO_UPDATE_ENABLED=true
+UPDATE_CHECK_INTERVAL_SECONDS=3600
+```
+
+## Voice behavior
+
+Every user message is treated as microphone speech transcribed into text. Jarvis
+expects phonetic mistakes, repeated phrases, missing punctuation, and mixed
+Swedish/English. It infers likely intent from context and does not pretend it only
+receives typed messages.
+
+Replies default to one short spoken sentence, usually 4 to 18 words. Actions are
+confirmed in only a few words. Web search and exact-time tools are exposed only
+when the request needs them.
+
+## Audio tuning
+
+The official wake model is strongest for **Hey Jarvis**. Plain **Jarvis** may also
+work.
+
+```text
+WAKE_THRESHOLD=0.45
+VAD_AGGRESSIVENESS=3
+ENERGY_THRESHOLD=350
+END_SILENCE_SECONDS=0.75
+MAX_UTTERANCE_SECONDS=12
+```
+
+VAD requires both WebRTC speech detection and sufficient microphone energy, then
+smooths decisions over several frames. The hard recording limit prevents room
+noise from producing 25-second recordings.
+
+## Configuration
+
+Secrets stay in `.env`, never GitHub. `OPENAI_API_KEY` may also be stored in a
+Windows Process, User, or Machine environment variable.
+
+Edit `config.json` for application aliases and Home Assistant lights. The default
+light aliases are:
+
+```text
+bedroom  -> light.viktor
+led_strip -> light.shellyrgbw2_49f5b9
+```
+
+Logs:
+
+```text
+%LOCALAPPDATA%\Jarvis\logs\jarvis.log
+%LOCALAPPDATA%\Jarvis\logs\update.log
+```

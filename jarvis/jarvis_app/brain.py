@@ -13,6 +13,20 @@ from .tools import Tools
 
 
 class Brain:
+    CURRENT_RE = re.compile(
+        r"\b(weather|forecast|temperature|väder|temperatur|regn|rain|"
+        r"today|tomorrow|tonight|idag|imorgon|ikväll|latest|current|recent|"
+        r"senaste|nuvarande|president|prime minister|statsminister|news|nyheter|"
+        r"price|cost|pris|score|result|schedule|release date|version|"
+        r"open now|öppet nu)\b",
+        re.IGNORECASE,
+    )
+    TIME_RE = re.compile(
+        r"\b(what time|what date|what day|time is it|klockan|vilket datum|"
+        r"vilken dag|dag är det|datum är det)\b",
+        re.IGNORECASE,
+    )
+
     def __init__(
         self,
         client: OpenAI,
@@ -30,24 +44,56 @@ class Brain:
 
     def instructions(self) -> str:
         assistant = self.config.get("assistant", {})
-        owner = assistant.get("owner_name", "the user")
-        style = assistant.get("reply_style", "")
+        owner = assistant.get("owner_name", "Viktor")
         location = assistant.get("location", "Stockholm, Sweden")
+        light_names = ", ".join(sorted(self.tools.lights)) or "none"
+        app_names = ", ".join(sorted(self.tools.apps)) or "none"
+        current_version = (
+            self.tools.updater.current_version
+            if self.tools.updater is not None
+            else "unknown"
+        )
+
         return f"""
-You are Jarvis, a fast voice assistant on {owner}'s computer.
+You are Jarvis, {owner}'s live voice assistant running on a Windows 11 PC.
+
+INPUT CONTEXT
+- Every user message comes from automatic speech-to-text, not typing.
+- The transcription can contain wrong words, repeated phrases, missing
+  punctuation, mixed Swedish and English, and phonetic mistakes.
+- Infer the most likely intended meaning from context. Do not mention
+  transcription errors unless the request is genuinely impossible to understand.
+- You are hearing the user through the microphone via transcription. If asked
+  whether you can hear them, answer yes.
+- This is a live spoken conversation, so replies will be read aloud immediately.
+
+KNOWN CONTEXT
+- User: {owner}.
+- Default location: {location}.
+- Time zone: Europe/Stockholm.
+- Device: Windows 11 PC.
+- Jarvis version: {current_version}.
+- Configured lights: {light_names}.
+- Configured applications: {app_names}.
+- "Here", "här", and local weather mean {location} unless another place is given.
+- "My lamp", "min lampa", and "lampan" mean the bedroom light.
+- "LED strip", "ljusslingan", and "LED-listen" mean the LED-strip light.
+
+RESPONSE RULES
 - Reply in the language the user mainly used. Swedish and English may be mixed.
-- Keep ordinary spoken answers short, normally 10 to 35 words.
-- {style}
-- Use get_current_time for the exact time or date.
-- Use web search for recent, changing, political, weather, news, price,
-  schedule, software-version, or current office-holder questions.
-- When a weather request has no place, use the user's default location:
-  {location}.
-- Use tools before claiming that you controlled a device or opened an app.
-- Never say an action succeeded if its tool returned an error.
-- Do not read URLs, citation syntax, markdown, or source lists aloud.
-- Interpret "my lamp", "min lampa", and "lampan" as "bedroom".
-- Interpret "LED strip", "ljusslingan", and "LED-listen" as "led_strip".
+- Default to one short sentence, usually 4 to 18 words.
+- Action confirmations should usually be 1 to 6 words.
+- Give a longer explanation only when the user asks for detail.
+- No greetings, preambles, markdown, URLs, citations, source lists, or tool names.
+- Do not repeat the user's question.
+- Do not add the date or time unless it is relevant or requested.
+- Use get_current_time only for an explicit time or date question.
+- Use web search for current weather, news, prices, schedules, releases, versions,
+  current public office-holders, and other changing facts.
+- Use tools before claiming that an action happened.
+- If update_jarvis reports a staged update, reply only "Updating now." or
+  "Uppdaterar nu." in the user's language.
+- If a tool fails, state the failure briefly and truthfully.
 """.strip()
 
     @staticmethod
@@ -60,47 +106,100 @@ You are Jarvis, a fast voice assistant on {owner}'s computer.
 
     @staticmethod
     def output_types(response: Any) -> str:
-        types = [str(getattr(item, "type", type(item).__name__)) for item in response.output]
-        return ",".join(types) if types else "none"
+        return ",".join(
+            str(getattr(item, "type", "unknown")) for item in response.output
+        )
 
     @staticmethod
     def usage_text(response: Any) -> str:
         usage = getattr(response, "usage", None)
         if usage is None:
-            return "usage unavailable"
-        input_tokens = getattr(usage, "input_tokens", None)
-        output_tokens = getattr(usage, "output_tokens", None)
-        total_tokens = getattr(usage, "total_tokens", None)
+            return "usage=unavailable"
         return (
-            f"input={input_tokens}, output={output_tokens}, total={total_tokens}"
+            f"input={getattr(usage, 'input_tokens', '?')}, "
+            f"output={getattr(usage, 'output_tokens', '?')}, "
+            f"total={getattr(usage, 'total_tokens', '?')}"
         )
 
-    def create_response(self, timing_name: str, **kwargs: Any) -> Any:
+    def create_response(self, label: str, **kwargs: Any) -> Any:
+        model = str(kwargs.get("model", ""))
+        if model.startswith("gpt-5") and "reasoning" not in kwargs:
+            kwargs["reasoning"] = {"effort": "minimal"}
+
         started = time.perf_counter()
         response = self.client.responses.create(**kwargs)
         elapsed = time.perf_counter() - started
         self.logger.info(
-            "TIMING | %s: %.3fs | output_types=%s | %s",
-            timing_name,
+            "TIMING | %s: %.3fs | model=%s | output_types=%s | %s",
+            label,
             elapsed,
+            model,
             self.output_types(response),
             self.usage_text(response),
         )
         return response
 
-    def followup_is_for_jarvis(self, text: str) -> bool:
-        total_started = time.perf_counter()
+    def context_text(self, new_text: str) -> str:
+        recent_text = " ".join(
+            str(item.get("content", "")) for item in self.history[-4:]
+        )
+        return f"{recent_text} {new_text}".strip()
+
+    def needs_web(self, text: str) -> bool:
+        return bool(self.CURRENT_RE.search(self.context_text(text)))
+
+    def needs_time(self, text: str) -> bool:
+        return bool(self.TIME_RE.search(text))
+
+    def obvious_followup(self, text: str) -> bool | None:
         normalized = text.strip()
         if not normalized:
-            self.logger.info("TIMING | follow-up intent: 0.000s | empty transcript")
             return False
 
         if re.search(r"\b(?:hey\s+)?(?:jarvis|järvis|jervis)\b", normalized, re.I):
-            self.logger.info(
-                "TIMING | follow-up intent: %.3fs | explicit Jarvis name | YES",
-                time.perf_counter() - total_started,
-            )
             return True
+
+        previous_jarvis = ""
+        for item in reversed(self.history):
+            if item.get("role") == "assistant":
+                previous_jarvis = str(item.get("content", ""))
+                break
+
+        lower = normalized.lower().strip(" .,!?")
+        if lower in {
+            "yes", "no", "yep", "nope", "ja", "nej", "correct", "right",
+            "exactly", "precis", "japp", "nä",
+        }:
+            return True
+
+        if re.match(r"^(?:in|at|i|på)\s+\S+", lower):
+            if re.search(
+                r"weather|forecast|väder|city|location|stad|plats|where|var",
+                previous_jarvis,
+                re.I,
+            ):
+                return True
+
+        if re.match(
+            r"^(?:what about|how about|and what|och|men|make it|turn it|"
+            r"gör den|sätt den|varför|why|when|när)\b",
+            lower,
+        ):
+            return True
+
+        return None
+
+    def followup_is_for_jarvis(self, text: str) -> bool:
+        total_started = time.perf_counter()
+        obvious = self.obvious_followup(text)
+        if obvious is not None:
+            self.logger.info(
+                "TIMING | follow-up intent: %.3fs | local=%s | transcript=%r",
+                time.perf_counter() - total_started,
+                "YES" if obvious else "NO",
+                text,
+            )
+            return obvious
 
         recent = self.history[-2:]
         previous_user = ""
@@ -114,39 +213,25 @@ You are Jarvis, a fast voice assistant on {owner}'s computer.
         classifier_instructions = """
 You are a strict routing classifier for a voice assistant named Jarvis.
 Determine whether the new speech is addressed to Jarvis as a continuation of
-the immediately preceding interaction.
+the immediately preceding interaction. Speech-to-text may contain mistakes.
 
 Return exactly YES or NO.
 
-Return YES when it clearly:
-- answers a question Jarvis just asked;
-- supplies requested information such as a city, date, name, amount, or choice;
-- confirms, rejects, corrects, or clarifies the prior request;
-- asks a natural follow-up about Jarvis's last answer;
-- gives Jarvis another command using context such as "turn it down";
-- directly addresses Jarvis.
-
-Return NO when it appears to:
-- start or continue a conversation with another person;
-- be unrelated background speech, media, or self-talk;
-- address someone else by name;
-- be an incomplete fragment with no clear connection;
-- merely be a statement that does not call for Jarvis.
-
-Speech-to-text may contain mistakes. Judge the likely intent using context rather
-than requiring perfect wording. When uncertain, return NO. Do not explain.
+YES includes an answer, correction, clarification, requested city/date/name,
+natural follow-up question, or contextual command. NO includes speech to another
+person, background media, unrelated self-talk, or an unclear fragment. When
+uncertain, return NO.
 """.strip()
-
         classifier_input = (
             f"Previous user request: {previous_user!r}\n"
             f"Jarvis's reply: {previous_jarvis!r}\n"
-            f"New speech: {normalized!r}"
+            f"New speech: {text.strip()!r}"
         )
 
         try:
             response = self.create_response(
                 "follow-up intent API",
-                model=self.settings.text_model,
+                model=self.settings.followup_model,
                 instructions=classifier_instructions,
                 input=classifier_input,
                 max_output_tokens=16,
@@ -158,7 +243,7 @@ than requiring perfect wording. When uncertain, return NO. Do not explain.
                 "Follow-up intent verdict: %s | raw=%r | transcript=%r",
                 "YES" if allowed else "NO",
                 verdict,
-                normalized,
+                text,
             )
             self.logger.info(
                 "TIMING | follow-up intent total: %.3fs",
@@ -177,13 +262,27 @@ than requiring perfect wording. When uncertain, return NO. Do not explain.
         total_started = time.perf_counter()
         user_item = {"role": "user", "content": text}
         request_input: list[Any] = [*self.history, user_item]
+        include_web = self.needs_web(text)
+        include_time = self.needs_time(text)
+        schemas = self.tools.schemas(
+            include_web=include_web,
+            include_time=include_time,
+        )
+        self.logger.info(
+            "ROUTING | web=%s | time=%s | model=%s | followup_model=%s",
+            include_web,
+            include_time,
+            self.settings.text_model,
+            self.settings.followup_model,
+        )
 
         response = self.create_response(
             "brain API round 1",
             model=self.settings.text_model,
             instructions=self.instructions(),
             input=request_input,
-            tools=self.tools.schemas(),
+            tools=schemas,
+            max_output_tokens=100,
             store=False,
         )
 
@@ -226,7 +325,8 @@ than requiring perfect wording. When uncertain, return NO. Do not explain.
                 model=self.settings.text_model,
                 instructions=self.instructions(),
                 input=request_input,
-                tools=self.tools.schemas(),
+                tools=schemas,
+                max_output_tokens=100,
                 store=False,
             )
         else:

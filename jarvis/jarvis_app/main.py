@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import json
+import os
+import sys
 from typing import Any
 
 import sounddevice as sd
@@ -10,6 +13,27 @@ from .app import Jarvis
 from .logging_utils import setup_logger
 from .paths import CONFIG_FILE, LOG_FILE
 from .settings import Settings
+
+_MUTEX_HANDLE: int | None = None
+
+
+def make_pythonw_safe() -> None:
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8")
+
+
+def acquire_single_instance() -> bool:
+    global _MUTEX_HANDLE
+    if sys.platform != "win32":
+        return True
+    kernel32 = ctypes.windll.kernel32
+    handle = kernel32.CreateMutexW(None, False, "Local\\ViktorJarvisVoiceAssistant")
+    if not handle:
+        return True
+    _MUTEX_HANDLE = int(handle)
+    return kernel32.GetLastError() != 183
 
 
 def load_config() -> dict[str, Any]:
@@ -33,6 +57,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    make_pythonw_safe()
     args = parse_args()
     if args.list_devices:
         print(sd.query_devices())
@@ -43,6 +68,9 @@ def main() -> int:
         settings.tts_enabled = False
 
     logger = setup_logger(settings.debug)
+    if not acquire_single_instance():
+        logger.info("Jarvis is already running; second launch cancelled.")
+        return 0
 
     try:
         config = load_config()

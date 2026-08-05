@@ -14,6 +14,7 @@ from .settings import Settings
 
 if TYPE_CHECKING:
     from .updater import UpdateManager
+    from .skills import SkillSystem
 
 
 class Tools:
@@ -23,10 +24,12 @@ class Tools:
         config: dict[str, Any],
         logger: logging.Logger,
         updater: "UpdateManager | None" = None,
+        skill_system: "SkillSystem | None" = None,
     ) -> None:
         self.settings = settings
         self.logger = logger
         self.updater = updater
+        self.skill_system = skill_system
         self.lights = {
             str(key).lower().replace(" ", "_"): str(value)
             for key, value in config.get("lights", {}).items()
@@ -171,6 +174,9 @@ class Tools:
                 }
             )
 
+        if self.skill_system is not None:
+            schemas.extend(self.skill_system.schemas())
+
         return schemas
 
     def call(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
@@ -221,6 +227,9 @@ class Tools:
                 if action == "status":
                     return self.updater.status()
                 return self.updater.request_manual_update().as_dict()
+
+            if self.skill_system is not None and self.skill_system.handles_tool(name):
+                return self.skill_system.call(name, args)
 
             raise ValueError(f"Unknown tool: {name}")
         finally:

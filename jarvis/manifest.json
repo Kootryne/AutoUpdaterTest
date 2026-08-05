@@ -1,25 +1,21 @@
 {
-  "version": "0.8.6",
+  "version": "0.8.7",
   "release_notes": {
     "en": [
-      "Jarvis now uses GPT-5.6 Luna for normal conversation, GPT-5.6 Sol for high-reasoning skill planning, and GPT-5.6 Luna for skill implementation and runtime.",
-      "Existing installations automatically migrate the mistaken GPT-4.1, GPT-5.2, and GPT-5.1 defaults when those exact old defaults are still configured.",
-      "You can switch between OpenAI speech and fast local Piper speech by voice; the choice is saved per computer.",
-      "Local speech uses Swedish and English medium-quality Piper voices and downloads them only on first activation.",
-      "Camera, webcam, screenshot, and screen-capture requests are correctly classified as Jarvis core features rather than sandboxed generated skills.",
-      "Equivalent skill builds are deduplicated, and a started background build is no longer falsely described as an installed or missing skill.",
-      "Very low-energy follow-up recordings and impossible non-Latin transcription glitches are discarded before they derail the conversation.",
-      "Garbled but recognizable skill-related follow-ups are accepted as continuations instead of being ignored."
+      "Jarvis can now shut down or restart the Windows PC only after two separate spoken confirmations; no or an unrelated command cancels the pending action.",
+      "Local English speech now uses the much more natural Kokoro ONNX British male voice, while Swedish local speech uses Piper Lisa instead of NST.",
+      "Questions such as 'are you using local or online TTS?' now report the active backend without accidentally switching it.",
+      "Voice-triggered updates now run the update helper from the downloaded new release, force Jarvis to exit, always repair Python dependencies, migrate settings, verify imports and models, and only then restart.",
+      "The higher-quality Kokoro dependency and model are installed lazily the first time local English speech is selected, avoiding another fragile bootstrap dependency.",
+      "The missing conversation-reliability patch from 0.8.6 is now actually loaded."
     ],
     "sv": [
-      "Jarvis använder nu GPT-5.6 Luna för vanliga samtal, GPT-5.6 Sol för avancerad skillplanering och GPT-5.6 Luna för skillprogrammering och körning.",
-      "Befintliga installationer migrerar automatiskt de felaktiga gamla standarderna GPT-4.1, GPT-5.2 och GPT-5.1 när exakt dessa värden fortfarande är inställda.",
-      "Du kan växla mellan OpenAI-talsyntes och snabb lokal Piper-talsyntes med rösten; valet sparas per dator.",
-      "Lokal talsyntes använder svenska och engelska Piper-röster i mediumkvalitet och laddar bara ner dem första gången.",
-      "Kamera-, webbkamera-, skärmbilds- och skärmdumpsönskemål klassificeras korrekt som Jarvis-kärnfunktioner i stället för sandboxade genererade skills.",
-      "Likvärdiga skillbyggen dubbleras inte, och ett startat bakgrundsbygge beskrivs inte längre felaktigt som en installerad eller saknad skill.",
-      "Uppföljningsinspelningar med mycket låg ljudenergi och orimliga icke-latinska transkriptionsfel kastas innan de förstör samtalet.",
-      "Förvrängda men igenkännbara skillrelaterade följdfrågor accepteras som fortsättningar i stället för att ignoreras."
+      "Jarvis kan nu stänga av eller starta om Windows-datorn först efter två separata muntliga bekräftelser; nej eller ett annat kommando avbryter åtgärden.",
+      "Lokal engelsk talsyntes använder nu den betydligt naturligare brittiska mansrösten i Kokoro ONNX, medan svensk lokal talsyntes använder Piper Lisa i stället för NST.",
+      "Frågor som 'använder du lokal eller online TTS?' rapporterar nu aktiv talsyntes utan att råka byta den.",
+      "Röststyrda uppdateringar kör nu uppdateringshjälparen från den nedladdade nya releasen, tvingar Jarvis att avslutas, reparerar alltid Python-beroenden, migrerar inställningar, verifierar importer och modeller och startar först därefter om.",
+      "Kokoro-paketet och modellen installeras först när lokal engelsk talsyntes väljs, så den här uppdateringen är inte beroende av ännu en skör bootstrap-installation.",
+      "Konversationsfixen som fanns i 0.8.6-manifestet men inte laddades aktiveras nu faktiskt."
     ]
   },
   "managed_files": [
@@ -36,6 +32,7 @@
     "jarvis_app/main.py",
     "jarvis_app/apply_update.py",
     "jarvis_app/apply_update_v2.py",
+    "jarvis_app/apply_update_v3.py",
     "jarvis_app/restart_helper.py",
     "jarvis_app/process_controls.py",
     "jarvis_app/updater.py",
@@ -62,6 +59,7 @@
     "jarvis_app/local_tts.py",
     "jarvis_app/reliability_v086.py",
     "jarvis_app/conversation_reliability_v086.py",
+    "jarvis_app/reliability_v087.py",
     "requirements.txt",
     ".env.example",
     "README.md",

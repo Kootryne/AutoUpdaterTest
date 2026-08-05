@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   "managed_files": [
     "jarvis.py",
     "jarvis_app/__init__.py",
@@ -12,6 +12,8 @@
     "jarvis_app/brain.py",
     "jarvis_app/app.py",
     "jarvis_app/main.py",
+    "jarvis_app/apply_update.py",
+    "jarvis_app/updater.py",
     "requirements.txt",
     ".env.example",
     "README.md",
@@ -21,13 +23,13 @@
     "text_test.bat",
     "update_jarvis.bat",
     "installer.ps1",
+    "version.json",
+    "manifest.json",
     "start_jarvis.vbs",
     "stop_jarvis.bat",
     "restart_jarvis.bat",
     "enable_startup.bat",
-    "disable_startup.bat",
-    "version.json",
-    "manifest.json"
+    "disable_startup.bat"
   ],
   "copy_if_missing": [
     "config.json"

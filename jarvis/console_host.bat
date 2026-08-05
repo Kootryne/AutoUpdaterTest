@@ -17,7 +17,7 @@ set "JARVIS_EXIT=%ERRORLEVEL%"
 
 if "%JARVIS_EXIT%"=="42" (
     echo.
-    echo Applying Jarvis update...
+    echo Applying Jarvis update and verifying dependencies...
     call :WAIT_FOR_UPDATE
     echo.
     echo Restarting Jarvis in this same console...
@@ -46,11 +46,12 @@ exit /b %JARVIS_EXIT%
 
 :WAIT_FOR_UPDATE
 set "UPDATE_RESULT=%INSTALL_DIR%\data\update_result.json"
-for /l %%I in (1,1,300) do (
+for /l %%I in (1,1,900) do (
     if exist "%UPDATE_RESULT%" goto UPDATE_FINISHED
     >nul 2>nul timeout /t 1 /nobreak
 )
-echo Update helper did not report completion after 5 minutes.
+echo Update helper did not report completion after 15 minutes.
+echo Check: %INSTALL_DIR%\logs\update.log
 exit /b 1
 
 :UPDATE_FINISHED

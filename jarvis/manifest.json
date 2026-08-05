@@ -8,7 +8,8 @@
       "Local speech uses Swedish and English medium-quality Piper voices and downloads them only on first activation.",
       "Camera, webcam, screenshot, and screen-capture requests are correctly classified as Jarvis core features rather than sandboxed generated skills.",
       "Equivalent skill builds are deduplicated, and a started background build is no longer falsely described as an installed or missing skill.",
-      "Very low-energy follow-up recordings are discarded before transcription to reduce hallucinated words from silence."
+      "Very low-energy follow-up recordings and impossible non-Latin transcription glitches are discarded before they derail the conversation.",
+      "Garbled but recognizable skill-related follow-ups are accepted as continuations instead of being ignored."
     ],
     "sv": [
       "Jarvis använder nu GPT-5.6 Luna för vanliga samtal, GPT-5.6 Sol för avancerad skillplanering och GPT-5.6 Luna för skillprogrammering och körning.",
@@ -17,7 +18,8 @@
       "Lokal talsyntes använder svenska och engelska Piper-röster i mediumkvalitet och laddar bara ner dem första gången.",
       "Kamera-, webbkamera-, skärmbilds- och skärmdumpsönskemål klassificeras korrekt som Jarvis-kärnfunktioner i stället för sandboxade genererade skills.",
       "Likvärdiga skillbyggen dubbleras inte, och ett startat bakgrundsbygge beskrivs inte längre felaktigt som en installerad eller saknad skill.",
-      "Uppföljningsinspelningar med mycket låg ljudenergi kastas före transkribering för att minska påhittade ord från tystnad."
+      "Uppföljningsinspelningar med mycket låg ljudenergi och orimliga icke-latinska transkriptionsfel kastas innan de förstör samtalet.",
+      "Förvrängda men igenkännbara skillrelaterade följdfrågor accepteras som fortsättningar i stället för att ignoreras."
     ]
   },
   "managed_files": [
@@ -59,6 +61,7 @@
     "jarvis_app/reliability_v085.py",
     "jarvis_app/local_tts.py",
     "jarvis_app/reliability_v086.py",
+    "jarvis_app/conversation_reliability_v086.py",
     "requirements.txt",
     ".env.example",
     "README.md",

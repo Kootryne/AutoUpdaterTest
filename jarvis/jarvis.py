@@ -1,8 +1,10 @@
 from jarvis_app.process_controls import apply_patches as apply_process_patches
 from jarvis_app.enhancements_v08 import apply_patches as apply_v08_patches
+from jarvis_app.enhancements_v081 import apply_patches as apply_v081_patches
 
 apply_process_patches()
 apply_v08_patches()
+apply_v081_patches()
 
 from jarvis_app.main import main
 

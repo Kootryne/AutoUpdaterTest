@@ -1,17 +1,17 @@
 {
-  "version": "0.8.3",
+  "version": "0.8.4",
   "release_notes": {
     "en": [
-      "Wake detection is less fragile when speech-to-text drops the leading Jarvis name.",
-      "Wake-word activation still requires stable model evidence, reducing isolated false triggers from videos and speakers.",
-      "Questions about update availability now perform a fresh GitHub check instead of relying on GPT memory or stale state.",
-      "Update-check failures are reported as unverified instead of being incorrectly described as no update."
+      "Wake energy is now time-aligned with delayed openWakeWord scores instead of checking only the current audio frame.",
+      "Repeated identical wake scores are no longer counted as independent confirmations.",
+      "Strong real wake phrases remain accepted when speech-to-text clips the leading Jarvis name.",
+      "Low-energy isolated score spikes from silence or speaker leakage remain rejected."
     ],
     "sv": [
-      "Wake-detekteringen är mindre känslig när tal-till-text tappar det inledande namnet Jarvis.",
-      "Aktivering kräver fortfarande en stabil modellträff, vilket minskar enstaka falsklarm från videor och högtalare.",
-      "Frågor om tillgängliga uppdateringar gör nu en färsk GitHub-kontroll i stället för att lita på GPT-minne eller gammal status.",
-      "Fel vid uppdateringskontroll rapporteras som overifierade i stället för att felaktigt beskrivas som att ingen uppdatering finns."
+      "Wake-energin tidsjusteras nu mot fördröjda openWakeWord-poäng i stället för att bara kontrollera den aktuella ljudframen.",
+      "Upprepade identiska wake-poäng räknas inte längre som oberoende bekräftelser.",
+      "Starka riktiga wake-fraser accepteras fortfarande när tal-till-text klipper bort det inledande namnet Jarvis.",
+      "Isolerade score-spikar med låg ljudenergi från tystnad eller högtalarläckage avvisas fortfarande."
     ]
   },
   "managed_files": [
@@ -49,6 +49,7 @@
     "jarvis_app/reliability_v082.py",
     "jarvis_app/reliability_v083.py",
     "jarvis_app/enhancements_v083.py",
+    "jarvis_app/reliability_v084.py",
     "requirements.txt",
     ".env.example",
     "README.md",

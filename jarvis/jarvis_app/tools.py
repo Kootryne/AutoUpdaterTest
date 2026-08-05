@@ -5,6 +5,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -134,42 +135,50 @@ class Tools:
         return schemas
 
     def call(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
+        started = time.perf_counter()
         self.logger.info("Tool: %s %s", name, args)
 
-        if name == "get_current_time":
-            try:
-                timezone = ZoneInfo(self.settings.timezone)
-            except Exception:
-                timezone = datetime.now().astimezone().tzinfo
-            now = datetime.now(timezone)
-            return {
-                "iso": now.isoformat(),
-                "time": now.strftime("%H:%M:%S"),
-                "date": now.strftime("%Y-%m-%d"),
-                "weekday": now.strftime("%A"),
-                "timezone": str(timezone),
-            }
+        try:
+            if name == "get_current_time":
+                try:
+                    timezone = ZoneInfo(self.settings.timezone)
+                except Exception:
+                    timezone = datetime.now().astimezone().tzinfo
+                now = datetime.now(timezone)
+                return {
+                    "iso": now.isoformat(),
+                    "time": now.strftime("%H:%M:%S"),
+                    "date": now.strftime("%Y-%m-%d"),
+                    "weekday": now.strftime("%A"),
+                    "timezone": str(timezone),
+                }
 
-        if name == "control_light":
-            return self.ha.control(
-                str(args["light"]),
-                str(args["power"]),
-                args.get("brightness_percent"),
-                args.get("rgb_color"),
+            if name == "control_light":
+                return self.ha.control(
+                    str(args["light"]),
+                    str(args["power"]),
+                    args.get("brightness_percent"),
+                    args.get("rgb_color"),
+                )
+
+            if name == "get_light_state":
+                return self.ha.state(str(args["light"]))
+
+            if name == "open_application":
+                alias = str(args["application"])
+                target = self.apps[alias]
+                if sys.platform == "win32":
+                    os.startfile(target)  # type: ignore[attr-defined]
+                elif sys.platform == "darwin":
+                    subprocess.Popen(["open", target])
+                else:
+                    subprocess.Popen(["xdg-open", target])
+                return {"opened": True, "application": alias}
+
+            raise ValueError(f"Unknown tool: {name}")
+        finally:
+            self.logger.info(
+                "TIMING | tool %s: %.3fs",
+                name,
+                time.perf_counter() - started,
             )
-
-        if name == "get_light_state":
-            return self.ha.state(str(args["light"]))
-
-        if name == "open_application":
-            alias = str(args["application"])
-            target = self.apps[alias]
-            if sys.platform == "win32":
-                os.startfile(target)  # type: ignore[attr-defined]
-            elif sys.platform == "darwin":
-                subprocess.Popen(["open", target])
-            else:
-                subprocess.Popen(["xdg-open", target])
-            return {"opened": True, "application": alias}
-
-        raise ValueError(f"Unknown tool: {name}")

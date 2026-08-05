@@ -1,21 +1,21 @@
 {
-  "version": "0.8.0",
+  "version": "0.8.1",
   "release_notes": {
     "en": [
-      "Jarvis now answers in English when spoken to in English and Swedish when spoken to in Swedish.",
-      "Generated skills are published to GitHub and synchronized across Jarvis installations.",
-      "Each computer can locally enable or disable individual shared skills.",
-      "Capabilities that cannot be safely generated can be posted as GitHub issues for developer review.",
-      "Automatic updates now ask for spoken permission before installation.",
-      "Visible updates and restarts use a stable temporary console host and return to the same command window."
+      "Release-note questions now go through GPT with the release-note tool, so Jarvis answers the exact question instead of dumping a canned list.",
+      "When Jarvis cannot do something, it now proposes either a buildable skill or a Jarvis core feature and waits for approval.",
+      "Core-feature suggestions are never posted publicly without explicit confirmation.",
+      "Failed or unsafe skill builds can become pending core-feature suggestions instead of silently failing.",
+      "GitHub authentication can be loaded from GITHUB_TOKEN, GH_TOKEN, Windows environment variables, or GitHub CLI.",
+      "A new setup_github.bat provides a guided one-time GitHub connection."
     ],
     "sv": [
-      "Jarvis svarar nu på engelska när du pratar engelska och på svenska när du pratar svenska.",
-      "Genererade skills publiceras på GitHub och synkroniseras mellan Jarvis-installationer.",
-      "Varje dator kan lokalt aktivera eller inaktivera enskilda delade skills.",
-      "Funktioner som inte säkert kan byggas kan skickas som GitHub-issues för utvecklargranskning.",
-      "Automatiska uppdateringar frågar nu om muntligt tillstånd före installation.",
-      "Synliga uppdateringar och omstarter använder en stabil tillfällig konsolvärd och återgår till samma kommandofönster."
+      "Frågor om versionsanteckningar går nu genom GPT med release-notes-verktyget, så Jarvis svarar på den exakta frågan i stället för att läsa en standardsammanfattning.",
+      "När Jarvis inte kan göra något föreslår den nu antingen en byggbar skill eller en ändring i Jarvis-kärnan och väntar på godkännande.",
+      "Förslag på kärnfunktioner publiceras aldrig offentligt utan tydlig bekräftelse.",
+      "Misslyckade eller osäkra skillbyggen kan bli väntande kärnförslag i stället för att bara misslyckas.",
+      "GitHub-autentisering kan hämtas från GITHUB_TOKEN, GH_TOKEN, Windows miljövariabler eller GitHub CLI.",
+      "En ny setup_github.bat ger en guidad engångsanslutning till GitHub."
     ]
   },
   "managed_files": [
@@ -47,6 +47,9 @@
     "jarvis_app/github_skill_patches.py",
     "jarvis_app/update_consent.py",
     "jarvis_app/enhancements_v08.py",
+    "jarvis_app/github_auth.py",
+    "jarvis_app/capability_flow.py",
+    "jarvis_app/enhancements_v081.py",
     "requirements.txt",
     ".env.example",
     "README.md",
@@ -63,7 +66,9 @@
     "stop_jarvis.bat",
     "restart_jarvis.bat",
     "enable_startup.bat",
-    "disable_startup.bat"
+    "disable_startup.bat",
+    "setup_github.ps1",
+    "setup_github.bat"
   ],
   "copy_if_missing": [
     "config.json"

@@ -7,6 +7,7 @@ from jarvis_app.reliability_v084 import apply_patches as apply_v084_patches
 from jarvis_app.reliability_v085 import apply_patches as apply_v085_patches
 from jarvis_app.reliability_v086 import apply_patches as apply_v086_patches
 from jarvis_app.conversation_reliability_v086 import apply_patches as apply_conversation_v086_patches
+from jarvis_app.reliability_v087 import apply_patches as apply_v087_patches
 
 apply_process_patches()
 apply_v08_patches()
@@ -17,6 +18,7 @@ apply_v084_patches()
 apply_v085_patches()
 apply_v086_patches()
 apply_conversation_v086_patches()
+apply_v087_patches()
 
 from jarvis_app.main import main
 

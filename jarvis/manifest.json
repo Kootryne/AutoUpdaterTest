@@ -1,5 +1,19 @@
 {
-  "version": "0.6.1",
+  "version": "0.7.0",
+  "release_notes": {
+    "en": [
+      "Jarvis can shut itself down by voice.",
+      "Jarvis can restart itself while preserving visible or background launch mode.",
+      "Jarvis can read current or latest release notes.",
+      "Visible updates now return to the same debug console instead of reopening hidden."
+    ],
+    "sv": [
+      "Jarvis kan stänga av sig själv med rösten.",
+      "Jarvis kan starta om sig själv och behålla synligt eller dolt startläge.",
+      "Jarvis kan läsa versionsanteckningar för aktuell eller senaste version.",
+      "Synliga uppdateringar återgår nu till samma debugfönster i stället för att öppnas dolt."
+    ]
+  },
   "managed_files": [
     "jarvis.py",
     "jarvis_app/__init__.py",
@@ -13,6 +27,9 @@
     "jarvis_app/app.py",
     "jarvis_app/main.py",
     "jarvis_app/apply_update.py",
+    "jarvis_app/apply_update_v2.py",
+    "jarvis_app/restart_helper.py",
+    "jarvis_app/process_controls.py",
     "jarvis_app/updater.py",
     "jarvis_app/tasks.py",
     "jarvis_app/skill_schema.py",

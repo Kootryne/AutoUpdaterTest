@@ -23,6 +23,17 @@ if "%JARVIS_EXIT%"=="42" (
     goto START_JARVIS
 )
 
+if "%JARVIS_EXIT%"=="44" (
+    echo.
+    echo Restarting Jarvis...
+    echo.
+    goto START_JARVIS
+)
+
+if "%JARVIS_EXIT%"=="43" (
+    exit /b 0
+)
+
 echo.
 if not "%JARVIS_EXIT%"=="0" (
     echo Jarvis exited with error code %JARVIS_EXIT%.

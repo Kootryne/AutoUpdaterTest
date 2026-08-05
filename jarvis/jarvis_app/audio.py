@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
 import math
 import queue
@@ -78,12 +79,19 @@ class AudioInput:
         return self.frames.get(timeout=timeout)
 
 
+@dataclass(slots=True)
+class SpeechMeasurement:
+    voiced: bool
+    vad: bool
+    rms: float
+
+
 class SpeechDetector:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self.vad = webrtcvad.Vad(settings.vad_aggressiveness)
 
-    def is_speech(self, frame: bytes) -> bool:
+    def measure(self, frame: bytes) -> SpeechMeasurement:
         try:
             vad_result = self.vad.is_speech(frame, SAMPLE_RATE)
         except Exception:
@@ -91,4 +99,9 @@ class SpeechDetector:
 
         samples = np.frombuffer(frame, dtype=np.int16).astype(np.float32)
         rms = math.sqrt(float(np.mean(samples * samples))) if samples.size else 0.0
-        return vad_result or rms >= self.settings.energy_threshold
+
+        voiced = vad_result and rms >= self.settings.energy_threshold
+        return SpeechMeasurement(voiced=voiced, vad=vad_result, rms=rms)
+
+    def is_speech(self, frame: bytes) -> bool:
+        return self.measure(frame).voiced

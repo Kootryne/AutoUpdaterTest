@@ -21,6 +21,7 @@ from .audio import AudioInput, SpeechDetector
 from .brain import Brain
 from .paths import APP_DIR, FRAME_MS, SAMPLE_RATE
 from .settings import Settings
+from .skills import SkillSystem
 from .tools import Tools
 from .updater import UpdateManager
 
@@ -43,6 +44,21 @@ class Jarvis:
         r")\b",
         re.IGNORECASE,
     )
+    skill_status_regex = re.compile(
+        r"(?:how(?:'s| is) it going|how far (?:are you|is it)|"
+        r"status (?:of|on)|what are you working on|"
+        r"how(?:'s| is) the skill going|how(?:'s| is) the research going|"
+        r"hur går det|hur långt har du kommit|status på|vad jobbar du med)",
+        re.IGNORECASE,
+    )
+    build_pending_skill_regex = re.compile(
+        r"^(?:make it|build it|create it|program it|make the skill|"
+        r"build the skill|create the skill|program the skill|"
+        r"gör den|bygg den|skapa den|programmera den|gör skillen|"
+        r"bygg skillen|skapa skillen)(?: now| nu)?[.!?]*$",
+        re.IGNORECASE,
+    )
+
     stop_phrases = {
         "stop", "cancel", "never mind", "nevermind", "sluta", "avbryt",
         "strunt samma", "det var inget",
@@ -67,7 +83,14 @@ class Jarvis:
         self.audio = AudioInput(settings, logger)
         self.detector = SpeechDetector(settings)
         self.updater = UpdateManager(settings, logger)
-        self.tools = Tools(settings, config, logger, updater=self.updater)
+        self.skill_system = SkillSystem(settings, logger)
+        self.tools = Tools(
+            settings,
+            config,
+            logger,
+            updater=self.updater,
+            skill_system=self.skill_system,
+        )
         self.brain = Brain(self.client, settings, config, self.tools, logger)
         self.wake_model = self.load_wake_model()
         self.last_wake = 0.0
@@ -114,7 +137,10 @@ class Jarvis:
 
         try:
             while not self.exit_requested:
-                if self.updater.auto_apply_ready():
+                if (
+                    self.updater.auto_apply_ready()
+                    and not self.skill_system.has_active_tasks()
+                ):
                     self.logger.info(
                         "UPDATER | applying staged automatic update while idle"
                     )
@@ -157,6 +183,7 @@ class Jarvis:
             self.logger.info("Stopped by Ctrl+C.")
         finally:
             self.updater.stop()
+            self.skill_system.shutdown()
             self.audio.disable()
             self.audio.close()
 
@@ -251,27 +278,24 @@ class Jarvis:
                 frame = self.audio.get(timeout=0.15)
             except queue.Empty:
                 continue
-
+            pre_voice.append(frame)
             measurement = self.detector.measure(frame)
             start_rms_max = max(start_rms_max, measurement.rms)
-            pre_voice.append(frame)
             start_window.append(measurement.voiced)
-
             if (
                 len(start_window) >= self.settings.followup_start_min_voiced_frames
                 and sum(start_window)
                 >= self.settings.followup_start_min_voiced_frames
             ):
-                wait_seconds = time.perf_counter() - wait_started
                 self.logger.info(
                     "TIMING | follow-up speech start: %.3fs | max_rms=%.0f",
-                    wait_seconds,
+                    time.perf_counter() - wait_started,
                     start_rms_max,
                 )
                 frames = self._record_until_silence(
                     list(pre_voice),
                     silence_seconds=self.settings.followup_end_silence,
-                    label="follow-up capture",
+                    label="follow-up record",
                 )
                 self.audio.disable()
                 return frames
@@ -284,34 +308,23 @@ class Jarvis:
         )
         return None
 
-    @staticmethod
-    def _looks_swedish(text: str) -> bool:
-        return bool(
-            re.search(
-                r"\b(?:uppdatera|uppdatering|sök|efter|installera|dig|nu|"
-                r"är|jag|min|vad|kan)\b|[åäö]",
-                text,
-                re.IGNORECASE,
-            )
-        )
-
     def _handle_local_update_command(
         self,
         command: str,
         turn_started: float | None,
     ) -> bool:
-        normalized_command = command.strip().strip(" .,!?:;")
-        if not self.update_regex.search(normalized_command):
+        if not self.update_regex.search(command.strip()):
             return False
 
+        swedish = bool(re.search(r"\b(uppdatera|uppdatering|sök)", command, re.I))
+        self.logger.info("UPDATER | voice update request")
         result = self.updater.request_manual_update()
-        swedish = self._looks_swedish(command)
 
         if result.error:
             self.say(
-                "Kunde inte kontrollera uppdateringar."
+                "Jag kunde inte kontrollera uppdateringen."
                 if swedish
-                else "I couldn't check for updates.",
+                else "I couldn't check the update.",
                 turn_started,
             )
             return True
@@ -325,22 +338,67 @@ class Jarvis:
             )
             return True
 
-        if result.staged:
+        if not result.staged:
             self.say(
-                "Uppdaterar nu." if swedish else "Updating now.",
+                "Jag hittade uppdateringen men kunde inte förbereda den."
+                if swedish
+                else "I found an update but couldn't prepare it.",
                 turn_started,
             )
-            if self.updater.launch_apply(reason="voice"):
-                self.exit_requested = True
+            return True
+
+        if self.skill_system.has_active_tasks():
+            self.updater.defer_apply_until_idle()
+            self.say(
+                "Uppdateringen är ferdig och installeras när bakgrundsjobbet är klart."
+                if swedish
+                else "The update is ready and will install when the background work finishes.",
+                turn_started,
+            )
             return True
 
         self.say(
-            "Uppdateringen kunde inte förberedas."
-            if swedish
-            else "The update couldn't be prepared.",
+            "Uppdaterar nu." if swedish else "Updating now.",
             turn_started,
         )
+        if self.updater.launch_apply(reason="voice"):
+            self.exit_requested = True
         return True
+
+    def _handle_local_skill_command(
+        self,
+        command: str,
+        turn_started: float | None,
+    ) -> bool:
+        normalized = command.strip()
+        swedish = bool(re.search(r"\b(hyr|går|fördig|jobbar|skillen)", normalized, re.I))
+
+        if self.skill_status_regex.search(normalized):
+            self.say(self.skill_system.spoken_status(swedish=swedish), turn_started)
+            return True
+
+        if (
+            self.skill_system.pending() is not None
+            and self.build_pending_skill_regex.match(normalized)
+        ):
+            result = self.skill_system.start_pending_build()
+            if result.get("started"):
+                self.say(
+                    "Jag bygger den i bakgrunden. Fråga hur det går när du vill."
+                    if swedish
+                    else "I'm building it in the background. Ask how it's going anytime.",
+                    turn_started,
+                )
+            else:
+                self.say(
+                    "Jag hittade inget skillförslag att bygga."
+                    if swedish
+                    else "I couldn't find a proposed skill to build.",
+                    turn_started,
+                )
+            return True
+
+        return False
 
     def handle_audio(
         self,
@@ -373,6 +431,9 @@ class Jarvis:
             if self._handle_local_update_command(command, turn_started):
                 return
 
+            if self._handle_local_skill_command(command, turn_started):
+                return
+
             try:
                 answer = self.brain.ask(command)
             except Exception as exc:
@@ -390,7 +451,7 @@ class Jarvis:
                 return
 
             heard = self.transcribe(followup).strip()
-            print(f"HEARD DURING FOLLOW-UP: {heard}")
+            print(f"HEARD TURING FOLLOW-UP: {heard}")
             self.logger.info("Follow-up transcript: %s", heard)
 
             if (
@@ -420,7 +481,7 @@ class Jarvis:
                 wav_file.setnchannels(1)
                 wav_file.setsampwidth(2)
                 wav_file.setframerate(SAMPLE_RATE)
-                wav_file.writeframes(b"".join(frames))
+                wav_file.writeframes(b".join(frames))
             self.logger.info(
                 "TIMING | WAV encode: %.3fs | audio=%.2fs",
                 time.perf_counter() - encode_started,

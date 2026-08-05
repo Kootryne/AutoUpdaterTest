@@ -319,6 +319,22 @@ class UpdateManager:
             request_manual_apply=True,
         )
 
+    def defer_apply_until_idle(self) -> bool:
+        """Convert a staged manual update into an idle automatic apply."""
+        with self._state_lock:
+            if (
+                self._staged_source is None
+                or not self._staged_source.exists()
+                or self._apply_launched
+            ):
+                return False
+            self._manual_apply_ready = False
+            self._auto_apply_ready = True
+            self.logger.info(
+                "UPDATER | staged update deferred until background tasks are idle"
+            )
+            return True
+
     def status(self) -> dict[str, Any]:
         with self._state_lock:
             return {

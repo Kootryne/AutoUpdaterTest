@@ -1,21 +1,17 @@
 {
-  "version": "0.8.7",
+  "version": "0.8.8",
   "release_notes": {
     "en": [
-      "Jarvis can now shut down or restart the Windows PC only after two separate spoken confirmations; no or an unrelated command cancels the pending action.",
-      "Local English speech now uses the much more natural Kokoro ONNX British male voice, while Swedish local speech uses Piper Lisa instead of NST.",
-      "Questions such as 'are you using local or online TTS?' now report the active backend without accidentally switching it.",
-      "Voice-triggered updates now run the update helper from the downloaded new release, force Jarvis to exit, always repair Python dependencies, migrate settings, verify imports and models, and only then restart.",
-      "The higher-quality Kokoro dependency and model are installed lazily the first time local English speech is selected, avoiding another fragile bootstrap dependency.",
-      "The missing conversation-reliability patch from 0.8.6 is now actually loaded."
+      "PC shutdown and restart now use a local confirmation state machine that always owns the next two yes/no replies before any GitHub or skill confirmation can see them.",
+      "Incomplete requests such as 'shut off the...' ask whether the target is the PC or Jarvis, and short Swedish mis-transcriptions such as 'det är P' require an extra clarification before the two confirmations.",
+      "Power confirmations can recover safely from a previous GPT-written confirmation question, while stale GitHub capability approvals now expire after ten minutes.",
+      "English Kokoro speech is split into short cached chunks so repeated phrases start immediately and long replies can synthesize later chunks while earlier audio is playing."
     ],
     "sv": [
-      "Jarvis kan nu stänga av eller starta om Windows-datorn först efter två separata muntliga bekräftelser; nej eller ett annat kommando avbryter åtgärden.",
-      "Lokal engelsk talsyntes använder nu den betydligt naturligare brittiska mansrösten i Kokoro ONNX, medan svensk lokal talsyntes använder Piper Lisa i stället för NST.",
-      "Frågor som 'använder du lokal eller online TTS?' rapporterar nu aktiv talsyntes utan att råka byta den.",
-      "Röststyrda uppdateringar kör nu uppdateringshjälparen från den nedladdade nya releasen, tvingar Jarvis att avslutas, reparerar alltid Python-beroenden, migrerar inställningar, verifierar importer och modeller och startar först därefter om.",
-      "Kokoro-paketet och modellen installeras först när lokal engelsk talsyntes väljs, så den här uppdateringen är inte beroende av ännu en skör bootstrap-installation.",
-      "Konversationsfixen som fanns i 0.8.6-manifestet men inte laddades aktiveras nu faktiskt."
+      "Avstängning och omstart av datorn använder nu ett lokalt bekräftelseflöde som alltid äger de två följande ja/nej-svaren innan GitHub- eller skillbekräftelser kan fånga dem.",
+      "Ofullständiga kommandon som 'shut off the...' frågar om målet är datorn eller Jarvis, och korta svenska feltranskriberingar som 'det är P' kräver en extra förtydligande fråga före de två bekräftelserna.",
+      "Datorbekräftelser kan återhämta sig säkert från en tidigare GPT-skriven bekräftelsefråga, medan gamla GitHub-godkännanden nu går ut efter tio minuter.",
+      "Engelsk Kokoro-talsyntes delas upp i korta cachade delar så att upprepade fraser startar direkt och längre svar kan syntetisera nästa del medan tidigare ljud spelas."
     ]
   },
   "managed_files": [
@@ -60,6 +56,7 @@
     "jarvis_app/reliability_v086.py",
     "jarvis_app/conversation_reliability_v086.py",
     "jarvis_app/reliability_v087.py",
+    "jarvis_app/reliability_v088.py",
     "requirements.txt",
     ".env.example",
     "README.md",

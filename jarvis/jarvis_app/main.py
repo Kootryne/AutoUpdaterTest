@@ -80,6 +80,10 @@ def main() -> int:
             app.say(answer)
         else:
             app.run()
+            if getattr(app.updater, "_apply_launched", False):
+                # run_jarvis.bat uses this to wait for the updater and restart
+                # Jarvis in the same visible console.
+                return 42
         return 0
     except Exception as exc:
         logger.exception("Jarvis could not start")

@@ -6,11 +6,14 @@ import os
 import subprocess
 import sys
 import time
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from .home_assistant import HomeAssistant
 from .settings import Settings
+
+if TYPE_CHECKING:
+    from .updater import UpdateManager
 
 
 class Tools:
@@ -19,9 +22,11 @@ class Tools:
         settings: Settings,
         config: dict[str, Any],
         logger: logging.Logger,
+        updater: "UpdateManager | None" = None,
     ) -> None:
         self.settings = settings
         self.logger = logger
+        self.updater = updater
         self.lights = {
             str(key).lower().replace(" ", "_"): str(value)
             for key, value in config.get("lights", {}).items()
@@ -32,22 +37,32 @@ class Tools:
         }
         self.ha = HomeAssistant(settings, self.lights, logger)
 
-    def schemas(self) -> list[dict[str, Any]]:
-        schemas: list[dict[str, Any]] = [
-            {"type": "web_search"},
-            {
-                "type": "function",
-                "name": "get_current_time",
-                "description": "Get the exact current local date and time.",
-                "strict": True,
-                "parameters": {
-                    "type": "object",
-                    "properties": {},
-                    "required": [],
-                    "additionalProperties": False,
-                },
-            },
-        ]
+    def schemas(
+        self,
+        *,
+        include_web: bool = False,
+        include_time: bool = False,
+    ) -> list[dict[str, Any]]:
+        schemas: list[dict[str, Any]] = []
+
+        if include_web:
+            schemas.append({"type": "web_search"})
+
+        if include_time:
+            schemas.append(
+                {
+                    "type": "function",
+                    "name": "get_current_time",
+                    "description": "Get the exact current local date and time.",
+                    "strict": True,
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
+                        "additionalProperties": False,
+                    },
+                }
+            )
 
         if self.lights:
             aliases = sorted(self.lights) + ["all"]
@@ -132,6 +147,30 @@ class Tools:
                 }
             )
 
+        if self.updater is not None:
+            schemas.append(
+                {
+                    "type": "function",
+                    "name": "update_jarvis",
+                    "description": (
+                        "Check for a newer Jarvis version and prepare it for an "
+                        "immediate smooth restart, or report update status."
+                    ),
+                    "strict": True,
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "action": {
+                                "type": "string",
+                                "enum": ["check_and_install", "status"],
+                            }
+                        },
+                        "required": ["action"],
+                        "additionalProperties": False,
+                    },
+                }
+            )
+
         return schemas
 
     def call(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
@@ -174,6 +213,14 @@ class Tools:
                 else:
                     subprocess.Popen(["xdg-open", target])
                 return {"opened": True, "application": alias}
+
+            if name == "update_jarvis":
+                if self.updater is None:
+                    raise RuntimeError("The update manager is unavailable.")
+                action = str(args["action"])
+                if action == "status":
+                    return self.updater.status()
+                return self.updater.request_manual_update().as_dict()
 
             raise ValueError(f"Unknown tool: {name}")
         finally:

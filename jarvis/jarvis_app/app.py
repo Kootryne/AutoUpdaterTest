@@ -22,6 +22,7 @@ from .brain import Brain
 from .paths import APP_DIR, FRAME_MS, SAMPLE_RATE
 from .settings import Settings
 from .tools import Tools
+from .updater import UpdateManager
 
 
 class Jarvis:
@@ -29,15 +30,22 @@ class Jarvis:
         r"^\s*(?:hey[\s,]+)?(?:jarvis|järvis|jervis)\b[\s,.:;!?\-]*",
         re.IGNORECASE,
     )
+    update_regex = re.compile(
+        r"(?:^|\b)(?:"
+        r"update(?:\s+now)?\s*$|"
+        r"update\s+(?:yourself|jarvis|the\s+assistant)|"
+        r"check\s+for\s+(?:an?\s+)?update|"
+        r"install\s+(?:the\s+)?update|"
+        r"uppdatera(?:\s+nu)?\s*$|"
+        r"uppdatera\s+(?:dig|jarvis)|"
+        r"sök\s+efter\s+uppdatering(?:ar)?|"
+        r"installera\s+uppdatering(?:en)?"
+        r")\b",
+        re.IGNORECASE,
+    )
     stop_phrases = {
-        "stop",
-        "cancel",
-        "never mind",
-        "nevermind",
-        "sluta",
-        "avbryt",
-        "strunt samma",
-        "det var inget",
+        "stop", "cancel", "never mind", "nevermind", "sluta", "avbryt",
+        "strunt samma", "det var inget",
     }
 
     def __init__(
@@ -58,10 +66,12 @@ class Jarvis:
         self.client = OpenAI(api_key=settings.api_key)
         self.audio = AudioInput(settings, logger)
         self.detector = SpeechDetector(settings)
-        self.tools = Tools(settings, config, logger)
+        self.updater = UpdateManager(settings, logger)
+        self.tools = Tools(settings, config, logger, updater=self.updater)
         self.brain = Brain(self.client, settings, config, self.tools, logger)
         self.wake_model = self.load_wake_model()
         self.last_wake = 0.0
+        self.exit_requested = False
 
     def load_wake_model(self) -> WakeWordModel:
         started = time.perf_counter()
@@ -81,6 +91,7 @@ class Jarvis:
         return model
 
     def run(self) -> None:
+        self.updater.start()
         audio_started = time.perf_counter()
         self.audio.open()
         self.audio.enable()
@@ -94,13 +105,26 @@ class Jarvis:
 
         print("\nJARVIS READY | Say 'Hey Jarvis' | Ctrl+C stops it\n")
         self.logger.info(
-            "Ready. Wake threshold %.2f", self.settings.wake_threshold
+            "Ready. Wake threshold %.2f | VAD mode=%d | energy=%d | max=%.1fs",
+            self.settings.wake_threshold,
+            self.settings.vad_aggressiveness,
+            self.settings.energy_threshold,
+            self.settings.effective_max_utterance,
         )
 
         try:
-            while True:
+            while not self.exit_requested:
+                if self.updater.auto_apply_ready():
+                    self.logger.info(
+                        "UPDATER | applying staged automatic update while idle"
+                    )
+                    self.audio.disable()
+                    if self.updater.launch_apply(reason="automatic"):
+                        self.exit_requested = True
+                        break
+
                 try:
-                    frame = self.audio.get(timeout=1)
+                    frame = self.audio.get(timeout=0.25)
                 except queue.Empty:
                     continue
 
@@ -124,107 +148,199 @@ class Jarvis:
                     pre_roll.clear()
                     self.audio.disable()
                     self.handle_audio(frames, interaction_started)
+                    if self.exit_requested:
+                        break
                     self.wake_model.reset()
                     self.audio.enable()
                     self.logger.info("Listening for wake word...")
         except KeyboardInterrupt:
             self.logger.info("Stopped by Ctrl+C.")
         finally:
+            self.updater.stop()
             self.audio.disable()
             self.audio.close()
 
-    def record_after_wake(self, pre_roll: list[bytes]) -> list[bytes]:
-        frames = list(pre_roll)
+    def _record_until_silence(
+        self,
+        initial_frames: list[bytes],
+        *,
+        silence_seconds: float,
+        label: str,
+    ) -> list[bytes]:
+        frames = list(initial_frames)
         started = time.perf_counter()
         last_voice = started
-        self.logger.info("Listening for command...")
+        voice_window: deque[bool] = deque(maxlen=self.settings.vad_window_frames)
+        raw_voiced = 0
+        vad_positive = 0
+        rms_total = 0.0
+        rms_max = 0.0
+        measured_frames = 0
+        stop_reason = "hard-timeout"
 
-        while time.perf_counter() - started < self.settings.max_utterance:
+        while time.perf_counter() - started < self.settings.effective_max_utterance:
             try:
                 frame = self.audio.get(timeout=0.25)
             except queue.Empty:
                 continue
 
             frames.append(frame)
-            if self.detector.is_speech(frame):
+            measurement = self.detector.measure(frame)
+            measured_frames += 1
+            raw_voiced += int(measurement.voiced)
+            vad_positive += int(measurement.vad)
+            rms_total += measurement.rms
+            rms_max = max(rms_max, measurement.rms)
+            voice_window.append(measurement.voiced)
+
+            smoothed_voice = (
+                len(voice_window) >= self.settings.vad_min_voiced_frames
+                and sum(voice_window) >= self.settings.vad_min_voiced_frames
+            )
+            if smoothed_voice:
                 last_voice = time.perf_counter()
 
-            if (
-                time.perf_counter() - started >= 0.45
-                and time.perf_counter() - last_voice >= self.settings.end_silence
-            ):
+            elapsed = time.perf_counter() - started
+            if elapsed >= 0.55 and elapsed - (last_voice - started) >= silence_seconds:
+                stop_reason = "silence"
                 break
 
         elapsed = time.perf_counter() - started
         audio_seconds = len(frames) * FRAME_MS / 1000
         self.logger.info(
-            "TIMING | command capture after wake: %.3fs | audio=%.2fs | "
-            "pre_roll=%.2fs",
+            "TIMING | %s: %.3fs | audio=%.2fs | stop=%s",
+            label,
             elapsed,
             audio_seconds,
-            len(pre_roll) * FRAME_MS / 1000,
+            stop_reason,
+        )
+        self.logger.info(
+            "VAD | %s | frames=%d | voiced=%.1f%% | webrtc=%.1f%% | "
+            "avg_rms=%.0f | max_rms=%.0f | threshold=%d | window=%d/%d",
+            label,
+            measured_frames,
+            100 * raw_voiced / measured_frames if measured_frames else 0.0,
+            100 * vad_positive / measured_frames if measured_frames else 0.0,
+            rms_total / measured_frames if measured_frames else 0.0,
+            rms_max,
+            self.settings.energy_threshold,
+            self.settings.vad_min_voiced_frames,
+            self.settings.vad_window_frames,
         )
         return frames
+
+    def record_after_wake(self, pre_roll: list[bytes]) -> list[bytes]:
+        self.logger.info("Listening for command...")
+        return self._record_until_silence(
+            pre_roll,
+            silence_seconds=self.settings.end_silence,
+            label="command capture after wake",
+        )
 
     def record_followup(self) -> list[bytes] | None:
         self.audio.enable()
         wait_started = time.perf_counter()
-        speech_started_at: float | None = None
-        pre_voice: deque[bytes] = deque(maxlen=10)
-        frames: list[bytes] = []
-        started = False
-        last_voice = wait_started
+        start_window: deque[bool] = deque(
+            maxlen=self.settings.followup_start_window_frames
+        )
+        pre_voice: deque[bytes] = deque(maxlen=12)
+        start_rms_max = 0.0
 
-        while True:
-            now = time.perf_counter()
-            if not started and now - wait_started >= self.settings.followup_timeout:
-                self.audio.disable()
-                self.logger.info(
-                    "TIMING | follow-up wait: %.3fs | no speech",
-                    now - wait_started,
-                )
-                return None
-            if started and now - wait_started >= self.settings.max_utterance:
-                break
-
+        while time.perf_counter() - wait_started < self.settings.followup_timeout:
             try:
                 frame = self.audio.get(timeout=0.15)
             except queue.Empty:
                 continue
 
-            voice = self.detector.is_speech(frame)
-            if not started:
-                pre_voice.append(frame)
-                if voice:
-                    started = True
-                    speech_started_at = time.perf_counter()
-                    frames.extend(pre_voice)
-                    last_voice = speech_started_at
-            else:
-                frames.append(frame)
-                if voice:
-                    last_voice = time.perf_counter()
-                elif (
-                    time.perf_counter() - last_voice
-                    >= self.settings.followup_end_silence
-                ):
-                    break
+            measurement = self.detector.measure(frame)
+            start_rms_max = max(start_rms_max, measurement.rms)
+            pre_voice.append(frame)
+            start_window.append(measurement.voiced)
+
+            if (
+                len(start_window) >= self.settings.followup_start_min_voiced_frames
+                and sum(start_window)
+                >= self.settings.followup_start_min_voiced_frames
+            ):
+                wait_seconds = time.perf_counter() - wait_started
+                self.logger.info(
+                    "TIMING | follow-up speech start: %.3fs | max_rms=%.0f",
+                    wait_seconds,
+                    start_rms_max,
+                )
+                frames = self._record_until_silence(
+                    list(pre_voice),
+                    silence_seconds=self.settings.followup_end_silence,
+                    label="follow-up capture",
+                )
+                self.audio.disable()
+                return frames
 
         self.audio.disable()
-        ended = time.perf_counter()
-        wait_seconds = (
-            (speech_started_at - wait_started) if speech_started_at is not None else 0.0
-        )
-        record_seconds = (
-            (ended - speech_started_at) if speech_started_at is not None else 0.0
-        )
         self.logger.info(
-            "TIMING | follow-up listen: wait=%.3fs | record=%.3fs | audio=%.2fs",
-            wait_seconds,
-            record_seconds,
-            len(frames) * FRAME_MS / 1000,
+            "TIMING | follow-up wait: %.3fs | no speech | max_rms=%.0f",
+            time.perf_counter() - wait_started,
+            start_rms_max,
         )
-        return frames or None
+        return None
+
+    @staticmethod
+    def _looks_swedish(text: str) -> bool:
+        return bool(
+            re.search(
+                r"\b(?:uppdatera|uppdatering|sök|efter|installera|dig|nu|"
+                r"är|jag|min|vad|kan)\b|[åäö]",
+                text,
+                re.IGNORECASE,
+            )
+        )
+
+    def _handle_local_update_command(
+        self,
+        command: str,
+        turn_started: float | None,
+    ) -> bool:
+        normalized_command = command.strip().strip(" .,!?:;")
+        if not self.update_regex.search(normalized_command):
+            return False
+
+        result = self.updater.request_manual_update()
+        swedish = self._looks_swedish(command)
+
+        if result.error:
+            self.say(
+                "Kunde inte kontrollera uppdateringar."
+                if swedish
+                else "I couldn't check for updates.",
+                turn_started,
+            )
+            return True
+
+        if not result.update_available:
+            self.say(
+                "Jag är redan uppdaterad."
+                if swedish
+                else "I'm already up to date.",
+                turn_started,
+            )
+            return True
+
+        if result.staged:
+            self.say(
+                "Uppdaterar nu." if swedish else "Updating now.",
+                turn_started,
+            )
+            if self.updater.launch_apply(reason="voice"):
+                self.exit_requested = True
+            return True
+
+        self.say(
+            "Uppdateringen kunde inte förberedas."
+            if swedish
+            else "The update couldn't be prepared.",
+            turn_started,
+        )
+        return True
 
     def handle_audio(
         self,
@@ -254,6 +370,9 @@ class Jarvis:
             turn_started = interaction_started if first_turn else time.perf_counter()
             first_turn = False
 
+            if self._handle_local_update_command(command, turn_started):
+                return
+
             try:
                 answer = self.brain.ask(command)
             except Exception as exc:
@@ -261,6 +380,11 @@ class Jarvis:
                 answer = self.friendly_error(exc)
 
             self.say(answer, turn_started)
+            if self.updater.manual_apply_ready():
+                if self.updater.launch_apply(reason="voice-tool"):
+                    self.exit_requested = True
+                return
+
             followup = self.record_followup()
             if followup is None:
                 return
@@ -312,7 +436,8 @@ class Jarvis:
                     prompt=(
                         "The speaker may use Swedish, English, or both. "
                         "Expected words include Jarvis, Viktor, Home Assistant, "
-                        "Stockholm, Spotify, Steam, and smart-home commands."
+                        "Stockholm, Göteborg, Gothenburg, Spotify, Steam, and "
+                        "smart-home commands."
                     ),
                 )
             api_elapsed = time.perf_counter() - api_started
@@ -391,12 +516,7 @@ class Jarvis:
                 )
 
             playback_started = time.perf_counter()
-            sd.play(
-                data,
-                rate,
-                device=self.settings.speaker_device,
-                blocking=True,
-            )
+            sd.play(data, rate, device=self.settings.speaker_device, blocking=True)
             self.logger.info(
                 "TIMING | playback: %.3fs | expected_audio=%.2fs",
                 time.perf_counter() - playback_started,
@@ -421,11 +541,7 @@ class Jarvis:
 
     @staticmethod
     def temp_path(suffix: str) -> Path:
-        handle = tempfile.NamedTemporaryFile(
-            suffix=suffix,
-            delete=False,
-            dir=APP_DIR,
-        )
+        handle = tempfile.NamedTemporaryFile(suffix=suffix, delete=False, dir=APP_DIR)
         path = Path(handle.name)
         handle.close()
         return path

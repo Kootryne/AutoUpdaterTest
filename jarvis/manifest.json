@@ -1,21 +1,21 @@
 {
-  "version": "0.8.1",
+  "version": "0.8.2",
   "release_notes": {
     "en": [
-      "Release-note questions now go through GPT with the release-note tool, so Jarvis answers the exact question instead of dumping a canned list.",
-      "When Jarvis cannot do something, it now proposes either a buildable skill or a Jarvis core feature and waits for approval.",
-      "Core-feature suggestions are never posted publicly without explicit confirmation.",
-      "Failed or unsafe skill builds can become pending core-feature suggestions instead of silently failing.",
-      "GitHub authentication can be loaded from GITHUB_TOKEN, GH_TOKEN, Windows environment variables, or GitHub CLI.",
-      "A new setup_github.bat provides a guided one-time GitHub connection."
+      "Wake-word detections now require a stable score and a transcript beginning with Hey Jarvis, Hej Jarvis, or Jarvis, reducing false triggers from speaker audio.",
+      "Follow-up routing now recognizes direct questions, corrections, pronouns, and commands such as try checking again instead of rejecting them as background speech.",
+      "Skill state is now authoritative: enabled, disabled, and uninstalled are separate states.",
+      "Disabling a skill no longer claims it was removed, and uninstalling uses a separate verified tool.",
+      "Jarvis refuses to change a nonexistent skill and a truth guard corrects unsupported claims about installed or removed skills.",
+      "Swedish and English detection now recognizes Hej Jarvis and short English repair commands more reliably."
     ],
     "sv": [
-      "Frågor om versionsanteckningar går nu genom GPT med release-notes-verktyget, så Jarvis svarar på den exakta frågan i stället för att läsa en standardsammanfattning.",
-      "När Jarvis inte kan göra något föreslår den nu antingen en byggbar skill eller en ändring i Jarvis-kärnan och väntar på godkännande.",
-      "Förslag på kärnfunktioner publiceras aldrig offentligt utan tydlig bekräftelse.",
-      "Misslyckade eller osäkra skillbyggen kan bli väntande kärnförslag i stället för att bara misslyckas.",
-      "GitHub-autentisering kan hämtas från GITHUB_TOKEN, GH_TOKEN, Windows miljövariabler eller GitHub CLI.",
-      "En ny setup_github.bat ger en guidad engångsanslutning till GitHub."
+      "Wake-word-träffar kräver nu både en stabil modellträff och ett transkript som börjar med Hey Jarvis, Hej Jarvis eller Jarvis, vilket minskar falska aktiveringar från högtalarljud.",
+      "Följdfrågor känner nu igen direkta frågor, rättelser, pronomen och kommandon som kontrollera igen i stället för att avvisa dem som bakgrundstal.",
+      "Skillstatus är nu auktoritativ: aktiverad, inaktiverad och avinstallerad är separata tillstånd.",
+      "Att inaktivera en skill påstås inte längre vara samma sak som att ta bort den, och avinstallation använder ett separat verifierat verktyg.",
+      "Jarvis vägrar ändra en skill som inte finns och ett sanningsfilter korrigerar påståenden om installerade eller borttagna skills som saknar stöd.",
+      "Svensk och engelsk språkdetektion känner nu igen Hej Jarvis och korta engelska rättelsekommandon mer tillförlitligt."
     ]
   },
   "managed_files": [
@@ -50,6 +50,7 @@
     "jarvis_app/github_auth.py",
     "jarvis_app/capability_flow.py",
     "jarvis_app/enhancements_v081.py",
+    "jarvis_app/reliability_v082.py",
     "requirements.txt",
     ".env.example",
     "README.md",

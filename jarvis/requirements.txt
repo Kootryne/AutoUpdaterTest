@@ -1,0 +1,9 @@
+openai>=1.100.0,<3
+openwakeword>=0.6.0,<0.7
+numpy>=1.26,<3
+onnxruntime>=1.18,<2
+sounddevice>=0.5.1,<1
+soundfile>=0.13,<1
+webrtcvad-wheels>=2.0.14,<3
+python-dotenv>=1.0,<2
+requests>=2.32,<3

@@ -1,17 +1,21 @@
 {
-  "version": "0.7.0",
+  "version": "0.8.0",
   "release_notes": {
     "en": [
-      "Jarvis can shut itself down by voice.",
-      "Jarvis can restart itself while preserving visible or background launch mode.",
-      "Jarvis can read current or latest release notes.",
-      "Visible updates now return to the same debug console instead of reopening hidden."
+      "Jarvis now answers in English when spoken to in English and Swedish when spoken to in Swedish.",
+      "Generated skills are published to GitHub and synchronized across Jarvis installations.",
+      "Each computer can locally enable or disable individual shared skills.",
+      "Capabilities that cannot be safely generated can be posted as GitHub issues for developer review.",
+      "Automatic updates now ask for spoken permission before installation.",
+      "Visible updates and restarts use a stable temporary console host and return to the same command window."
     ],
     "sv": [
-      "Jarvis kan stänga av sig själv med rösten.",
-      "Jarvis kan starta om sig själv och behålla synligt eller dolt startläge.",
-      "Jarvis kan läsa versionsanteckningar för aktuell eller senaste version.",
-      "Synliga uppdateringar återgår nu till samma debugfönster i stället för att öppnas dolt."
+      "Jarvis svarar nu på engelska när du pratar engelska och på svenska när du pratar svenska.",
+      "Genererade skills publiceras på GitHub och synkroniseras mellan Jarvis-installationer.",
+      "Varje dator kan lokalt aktivera eller inaktivera enskilda delade skills.",
+      "Funktioner som inte säkert kan byggas kan skickas som GitHub-issues för utvecklargranskning.",
+      "Automatiska uppdateringar frågar nu om muntligt tillstånd före installation.",
+      "Synliga uppdateringar och omstarter använder en stabil tillfällig konsolvärd och återgår till samma kommandofönster."
     ]
   },
   "managed_files": [
@@ -37,11 +41,18 @@
     "jarvis_app/skill_builder.py",
     "jarvis_app/skills.py",
     "jarvis_app/skill_worker.py",
+    "jarvis_app/language_mode.py",
+    "jarvis_app/github_client.py",
+    "jarvis_app/shared_skill_manager.py",
+    "jarvis_app/github_skill_patches.py",
+    "jarvis_app/update_consent.py",
+    "jarvis_app/enhancements_v08.py",
     "requirements.txt",
     ".env.example",
     "README.md",
     "install.bat",
     "run_jarvis.bat",
+    "console_host.bat",
     "list_devices.bat",
     "text_test.bat",
     "update_jarvis.bat",

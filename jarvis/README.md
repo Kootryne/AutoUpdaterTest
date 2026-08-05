@@ -1,109 +1,80 @@
 # Jarvis Voice Assistant
 
-Windows-first Jarvis using:
-
-- openWakeWord's pretrained `hey_jarvis` model locally
-- `gpt-4o-mini-transcribe` for Swedish/English speech-to-text
-- `gpt-4.1-mini` for answers and tools
-- `gpt-4.1-nano` for uncertain follow-up routing
-- `gpt-4o-mini-tts` for speech
-- Home Assistant REST tools
+Windows-first Jarvis using openWakeWord, OpenAI speech-to-text, OpenAI Responses,
+OpenAI text-to-speech, Home Assistant tools, background tasks, self-updates, and
+user-created skills.
 
 ## Install and start
 
-The GitHub installer places Jarvis in:
+Jarvis is installed in:
 
 ```text
 %LOCALAPPDATA%\Jarvis
 ```
 
-Normal startup is silent through `start_jarvis.vbs`. A desktop shortcut and a
-Windows Startup shortcut are created automatically. For visible debug logs, run:
+Use `start_jarvis.vbs` for silent background mode. Use `run_jarvis.bat` for a
+visible console with live logs. The visible launcher copies its loop to a temporary
+batch file before starting Jarvis, so an update cannot replace the batch script
+that is currently supervising the process.
+
+## Language behavior
+
+Every transcription is classified locally as English or Swedish. Jarvis is given
+an explicit per-turn instruction to answer entirely in the detected language.
+Very short replies such as `yes`, `no`, `ja`, and `nej` retain the language of the
+current conversation.
+
+## Updates
+
+Jarvis checks for updates at startup and once per hour. It downloads and validates
+a new version in the background, but does not install it silently. While idle it
+asks:
 
 ```text
-%LOCALAPPDATA%\Jarvis\run_jarvis.bat
+I received update 0.x.x. Should I install it?
 ```
 
-Useful controls:
+or the Swedish equivalent. Installation begins only after an affirmative reply.
+Manual voice update commands still install immediately because the user has
+already explicitly requested the update.
+
+`run_jarvis.bat` uses `console_host.bat`, copied to `%TEMP%`, so updates and restarts
+return to the same visible console. Background launches remain background.
+
+## Shared skills
+
+Generated skills are validated and tested locally, then published under:
 
 ```text
-stop_jarvis.bat
-restart_jarvis.bat
-enable_startup.bat
-disable_startup.bat
+jarvis/shared_skills/<skill-id>/
 ```
 
-## Automatic updates
+`jarvis/shared_skills/index.json` is the shared catalogue. Every Jarvis instance
+syncs it at startup and hourly. Shared files are hash-checked and pass the normal
+skill manifest and code-safety validation before installation.
 
-Version 0.5.0 checks GitHub immediately at startup and every hour afterward. A
-new version downloads and validates in the background while Jarvis keeps
-listening. Jarvis applies it only while idle, then a separate helper swaps files
-and restarts the assistant.
-
-Voice examples:
+A skill can be disabled on one computer without disabling it elsewhere. Voice
+examples:
 
 ```text
-Hey Jarvis, update.
-Jarvis, check for an update.
-Jarvis, uppdatera dig.
+Disable the weather report skill on this computer.
+Enable the weather report skill.
+Sync shared skills now.
 ```
 
-The update system preserves `.env`, `config.json`, `.venv`, and logs. It backs up
-managed files first and restores them if copying or dependency installation
-fails. Normal code-only updates should interrupt Jarvis only for the short
-restart; dependency changes may take longer.
+Local disabled IDs are stored in `data\disabled_skills.json` and are not uploaded.
 
-Settings:
+Publishing skills and creating developer suggestions require `GITHUB_TOKEN` in
+`.env` or the Windows environment. Use a fine-grained token restricted to
+`Kootryne/AutoUpdaterTest` with **Contents: read/write** and
+**Issues: read/write**. The token stays local.
 
-```text
-AUTO_UPDATE_ENABLED=true
-UPDATE_CHECK_INTERVAL_SECONDS=3600
-```
+When Sol decides that a requested capability cannot be implemented safely as a
+generated skill, Jarvis creates a GitHub issue for developer review. Failed builds
+can also create an issue containing the requested capability, proposed design,
+and failure reason.
 
-## Voice behavior
+## Secrets
 
-Every user message is treated as microphone speech transcribed into text. Jarvis
-expects phonetic mistakes, repeated phrases, missing punctuation, and mixed
-Swedish/English. It infers likely intent from context and does not pretend it only
-receives typed messages.
-
-Replies default to one short spoken sentence, usually 4 to 18 words. Actions are
-confirmed in only a few words. Web search and exact-time tools are exposed only
-when the request needs them.
-
-## Audio tuning
-
-The official wake model is strongest for **Hey Jarvis**. Plain **Jarvis** may also
-work.
-
-```text
-WAKE_THRESHOLD=0.45
-VAD_AGGRESSIVENESS=3
-ENERGY_THRESHOLD=350
-END_SILENCE_SECONDS=0.75
-MAX_UTTERANCE_SECONDS=12
-```
-
-VAD requires both WebRTC speech detection and sufficient microphone energy, then
-smooths decisions over several frames. The hard recording limit prevents room
-noise from producing 25-second recordings.
-
-## Configuration
-
-Secrets stay in `.env`, never GitHub. `OPENAI_API_KEY` may also be stored in a
-Windows Process, User, or Machine environment variable.
-
-Edit `config.json` for application aliases and Home Assistant lights. The default
-light aliases are:
-
-```text
-bedroom  -> light.viktor
-led_strip -> light.shellyrgbw2_49f5b9
-```
-
-Logs:
-
-```text
-%LOCALAPPDATA%\Jarvis\logs\jarvis.log
-%LOCALAPPDATA%\Jarvis\logs\update.log
-```
+Never commit `.env`. It may contain the OpenAI key, Home Assistant token, and
+GitHub token. `.env.example` contains only empty placeholders.

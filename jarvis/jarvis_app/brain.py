@@ -53,6 +53,11 @@ class Brain:
             if self.tools.updater is not None
             else "unknown"
         )
+        skill_context = (
+            self.tools.skill_system.prompt_context()
+            if self.tools.skill_system is not None
+            else "The skill system is unavailable."
+        )
 
         return f"""
 You are Jarvis, {owner}'s live voice assistant running on a Windows 11 PC.
@@ -94,6 +99,21 @@ RESPONSE RULES
 - If update_jarvis reports a staged update, reply only "Updating now." or
   "Uppdaterar nu." in the user's language.
 - If a tool fails, state the failure briefly and truthfully.
+
+SKILL CREATION AND BACKGROUND WORK
+- Installed user-created skills appear below as tools. Use them when relevant.
+- If the user requests something that no current tool or installed skill can
+  actually do, never pretend. Call suggest_new_skill, then say briefly that
+  you cannot do it yet and suggest how the proposed skill would work.
+- Only call build_new_skill after the user explicitly says to make, build,
+  create, or program the skill. Building runs in the background.
+- If asked how background work is going, call get_background_status.
+- When a long-running skill starts, say it is running and that the user can
+  ask for progress. Do not claim its result exists until the task completes.
+- Treat task status and skill results as current system state, not guesses.
+
+CURRENT SKILL AND TASK STATE
+{skill_context}
 """.strip()
 
     @staticmethod

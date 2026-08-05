@@ -1,5 +1,5 @@
 {
-  "version": "0.3.2",
+  "version": "0.4.0",
   "managed_files": [
     "jarvis.py",
     "jarvis_app/__init__.py",
@@ -21,6 +21,11 @@
     "text_test.bat",
     "update_jarvis.bat",
     "installer.ps1",
+    "start_jarvis.vbs",
+    "stop_jarvis.bat",
+    "restart_jarvis.bat",
+    "enable_startup.bat",
+    "disable_startup.bat",
     "version.json",
     "manifest.json"
   ],

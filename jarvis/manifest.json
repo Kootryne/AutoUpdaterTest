@@ -1,17 +1,23 @@
 {
-  "version": "0.8.5",
+  "version": "0.8.6",
   "release_notes": {
     "en": [
-      "Direct GitHub suggestions are now saved locally and confirmed before posting, without requiring a second GPT tool call.",
-      "Tool-call output budgets were increased so structured JSON arguments are not truncated at 100 tokens.",
-      "Local Jarvis suggestions no longer trigger web search because of stale conversation context.",
-      "Spoken replies now default to one concise sentence unless more detail is requested."
+      "Jarvis now uses GPT-5.6 Luna for normal conversation, GPT-5.6 Sol for high-reasoning skill planning, and GPT-5.6 Luna for skill implementation and runtime.",
+      "Existing installations automatically migrate the mistaken GPT-4.1, GPT-5.2, and GPT-5.1 defaults when those exact old defaults are still configured.",
+      "You can switch between OpenAI speech and fast local Piper speech by voice; the choice is saved per computer.",
+      "Local speech uses Swedish and English medium-quality Piper voices and downloads them only on first activation.",
+      "Camera, webcam, screenshot, and screen-capture requests are correctly classified as Jarvis core features rather than sandboxed generated skills.",
+      "Equivalent skill builds are deduplicated, and a started background build is no longer falsely described as an installed or missing skill.",
+      "Very low-energy follow-up recordings are discarded before transcription to reduce hallucinated words from silence."
     ],
     "sv": [
-      "Direkta GitHub-förslag sparas nu lokalt och bekräftas före publicering, utan ett andra GPT-verktygsanrop.",
-      "Tokenbudgeten för verktygsanrop har höjts så att strukturerade JSON-argument inte kapas vid 100 tokens.",
-      "Lokala Jarvis-förslag utlöser inte längre webbsökning på grund av gammal samtalskontext.",
-      "Talade svar är nu normalt en kort mening om inte mer detalj efterfrågas."
+      "Jarvis använder nu GPT-5.6 Luna för vanliga samtal, GPT-5.6 Sol för avancerad skillplanering och GPT-5.6 Luna för skillprogrammering och körning.",
+      "Befintliga installationer migrerar automatiskt de felaktiga gamla standarderna GPT-4.1, GPT-5.2 och GPT-5.1 när exakt dessa värden fortfarande är inställda.",
+      "Du kan växla mellan OpenAI-talsyntes och snabb lokal Piper-talsyntes med rösten; valet sparas per dator.",
+      "Lokal talsyntes använder svenska och engelska Piper-röster i mediumkvalitet och laddar bara ner dem första gången.",
+      "Kamera-, webbkamera-, skärmbilds- och skärmdumpsönskemål klassificeras korrekt som Jarvis-kärnfunktioner i stället för sandboxade genererade skills.",
+      "Likvärdiga skillbyggen dubbleras inte, och ett startat bakgrundsbygge beskrivs inte längre felaktigt som en installerad eller saknad skill.",
+      "Uppföljningsinspelningar med mycket låg ljudenergi kastas före transkribering för att minska påhittade ord från tystnad."
     ]
   },
   "managed_files": [
@@ -51,6 +57,8 @@
     "jarvis_app/enhancements_v083.py",
     "jarvis_app/reliability_v084.py",
     "jarvis_app/reliability_v085.py",
+    "jarvis_app/local_tts.py",
+    "jarvis_app/reliability_v086.py",
     "requirements.txt",
     ".env.example",
     "README.md",

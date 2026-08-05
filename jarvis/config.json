@@ -1,0 +1,15 @@
+{
+  "assistant": {
+    "owner_name": "Viktor",
+    "reply_style": "Keep normal spoken answers brief, usually one or two sentences."
+  },
+  "lights": {
+    "bedroom": "light.viktor",
+    "led_strip": "light.shellyrgbw2_49f5b9"
+  },
+  "apps": {
+    "browser": "https://www.google.com",
+    "spotify": "spotify:",
+    "steam": "steam://open/main"
+  }
+}

@@ -283,7 +283,8 @@ class Jarvis:
             start_rms_max = max(start_rms_max, measurement.rms)
             start_window.append(measurement.voiced)
             if (
-                len(start_window) >= self.settings.followup_start_min_voiced_frames
+                len(start_window)
+                >= self.settings.followup_start_min_voiced_frames
                 and sum(start_window)
                 >= self.settings.followup_start_min_voiced_frames
             ):
@@ -316,7 +317,7 @@ class Jarvis:
         if not self.update_regex.search(command.strip()):
             return False
 
-        swedish = bool(re.search(r"\b(uppdatera|uppdatering|sök)", command, re.I))
+        swedish = bool(re.search(r"\b(uppdatera|uppdatering|sök)\b", command, re.I))
         self.logger.info("UPDATER | voice update request")
         result = self.updater.request_manual_update()
 
@@ -350,7 +351,7 @@ class Jarvis:
         if self.skill_system.has_active_tasks():
             self.updater.defer_apply_until_idle()
             self.say(
-                "Uppdateringen är ferdig och installeras när bakgrundsjobbet är klart."
+                "Uppdateringen är färdig och installeras när bakgrundsjobbet är klart."
                 if swedish
                 else "The update is ready and will install when the background work finishes.",
                 turn_started,
@@ -371,7 +372,7 @@ class Jarvis:
         turn_started: float | None,
     ) -> bool:
         normalized = command.strip()
-        swedish = bool(re.search(r"\b(hyr|går|fördig|jobbar|skillen)", normalized, re.I))
+        swedish = bool(re.search(r"\b(hur|går|färdig|jobbar|skillen)\b", normalized, re.I))
 
         if self.skill_status_regex.search(normalized):
             self.say(self.skill_system.spoken_status(swedish=swedish), turn_started)
@@ -451,7 +452,7 @@ class Jarvis:
                 return
 
             heard = self.transcribe(followup).strip()
-            print(f"HEARD TURING FOLLOW-UP: {heard}")
+            print(f"HEARD DURING FOLLOW-UP: {heard}")
             self.logger.info("Follow-up transcript: %s", heard)
 
             if (
@@ -481,7 +482,7 @@ class Jarvis:
                 wav_file.setnchannels(1)
                 wav_file.setsampwidth(2)
                 wav_file.setframerate(SAMPLE_RATE)
-                wav_file.writeframes(b".join(frames))
+                wav_file.writeframes(b"".join(frames))
             self.logger.info(
                 "TIMING | WAV encode: %.3fs | audio=%.2fs",
                 time.perf_counter() - encode_started,
@@ -504,8 +505,7 @@ class Jarvis:
             api_elapsed = time.perf_counter() - api_started
             transcript = str(result.text).strip()
             self.logger.info(
-                "TIMING | STT API: %.3fs | audio=%.2fs | realtime_factor=%.2fx | "
-                "chars=%d",
+                "TIMING | STT API: %.3fs | audio=%.2fs | realtime_factor=%.2fx | chars=%d",
                 api_elapsed,
                 audio_seconds,
                 api_elapsed / audio_seconds if audio_seconds > 0 else 0.0,
@@ -577,7 +577,12 @@ class Jarvis:
                 )
 
             playback_started = time.perf_counter()
-            sd.play(data, rate, device=self.settings.speaker_device, blocking=True)
+            sd.play(
+                data,
+                rate,
+                device=self.settings.speaker_device,
+                blocking=True,
+            )
             self.logger.info(
                 "TIMING | playback: %.3fs | expected_audio=%.2fs",
                 time.perf_counter() - playback_started,

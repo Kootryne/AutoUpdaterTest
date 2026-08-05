@@ -64,6 +64,7 @@ class Jarvis:
         self.last_wake = 0.0
 
     def load_wake_model(self) -> WakeWordModel:
+        started = time.perf_counter()
         self.logger.info("Checking openWakeWord model files...")
         download_models(["hey_jarvis"])
         self.logger.info("Loading pretrained hey_jarvis model...")
@@ -73,11 +74,21 @@ class Jarvis:
             vad_threshold=self.settings.wake_vad_threshold,
         )
         self.logger.info("Loaded wake model: %s", ", ".join(model.models))
+        self.logger.info(
+            "TIMING | wake model setup: %.3fs",
+            time.perf_counter() - started,
+        )
         return model
 
     def run(self) -> None:
+        audio_started = time.perf_counter()
         self.audio.open()
         self.audio.enable()
+        self.logger.info(
+            "TIMING | microphone startup: %.3fs",
+            time.perf_counter() - audio_started,
+        )
+
         pre_roll_count = max(1, int(self.settings.pre_roll * 1000 / FRAME_MS))
         pre_roll: deque[bytes] = deque(maxlen=pre_roll_count)
 
@@ -107,11 +118,12 @@ class Jarvis:
                     and now - self.last_wake >= self.settings.wake_cooldown
                 ):
                     self.last_wake = now
+                    interaction_started = time.perf_counter()
                     self.logger.info("Wake detected, score %.3f", score)
                     frames = self.record_after_wake(list(pre_roll))
                     pre_roll.clear()
                     self.audio.disable()
-                    self.handle_audio(frames)
+                    self.handle_audio(frames, interaction_started)
                     self.wake_model.reset()
                     self.audio.enable()
                     self.logger.info("Listening for wake word...")
@@ -123,11 +135,11 @@ class Jarvis:
 
     def record_after_wake(self, pre_roll: list[bytes]) -> list[bytes]:
         frames = list(pre_roll)
-        started = time.monotonic()
+        started = time.perf_counter()
         last_voice = started
         self.logger.info("Listening for command...")
 
-        while time.monotonic() - started < self.settings.max_utterance:
+        while time.perf_counter() - started < self.settings.max_utterance:
             try:
                 frame = self.audio.get(timeout=0.25)
             except queue.Empty:
@@ -135,28 +147,42 @@ class Jarvis:
 
             frames.append(frame)
             if self.detector.is_speech(frame):
-                last_voice = time.monotonic()
+                last_voice = time.perf_counter()
 
             if (
-                time.monotonic() - started >= 0.45
-                and time.monotonic() - last_voice >= self.settings.end_silence
+                time.perf_counter() - started >= 0.45
+                and time.perf_counter() - last_voice >= self.settings.end_silence
             ):
                 break
 
+        elapsed = time.perf_counter() - started
+        audio_seconds = len(frames) * FRAME_MS / 1000
+        self.logger.info(
+            "TIMING | command capture after wake: %.3fs | audio=%.2fs | "
+            "pre_roll=%.2fs",
+            elapsed,
+            audio_seconds,
+            len(pre_roll) * FRAME_MS / 1000,
+        )
         return frames
 
     def record_followup(self) -> list[bytes] | None:
         self.audio.enable()
-        wait_started = time.monotonic()
+        wait_started = time.perf_counter()
+        speech_started_at: float | None = None
         pre_voice: deque[bytes] = deque(maxlen=10)
         frames: list[bytes] = []
         started = False
         last_voice = wait_started
 
         while True:
-            now = time.monotonic()
+            now = time.perf_counter()
             if not started and now - wait_started >= self.settings.followup_timeout:
                 self.audio.disable()
+                self.logger.info(
+                    "TIMING | follow-up wait: %.3fs | no speech",
+                    now - wait_started,
+                )
                 return None
             if started and now - wait_started >= self.settings.max_utterance:
                 break
@@ -171,38 +197,62 @@ class Jarvis:
                 pre_voice.append(frame)
                 if voice:
                     started = True
+                    speech_started_at = time.perf_counter()
                     frames.extend(pre_voice)
-                    last_voice = time.monotonic()
+                    last_voice = speech_started_at
             else:
                 frames.append(frame)
                 if voice:
-                    last_voice = time.monotonic()
+                    last_voice = time.perf_counter()
                 elif (
-                    time.monotonic() - last_voice
+                    time.perf_counter() - last_voice
                     >= self.settings.followup_end_silence
                 ):
                     break
 
         self.audio.disable()
+        ended = time.perf_counter()
+        wait_seconds = (
+            (speech_started_at - wait_started) if speech_started_at is not None else 0.0
+        )
+        record_seconds = (
+            (ended - speech_started_at) if speech_started_at is not None else 0.0
+        )
+        self.logger.info(
+            "TIMING | follow-up listen: wait=%.3fs | record=%.3fs | audio=%.2fs",
+            wait_seconds,
+            record_seconds,
+            len(frames) * FRAME_MS / 1000,
+        )
         return frames or None
 
-    def handle_audio(self, frames: list[bytes]) -> None:
+    def handle_audio(
+        self,
+        frames: list[bytes],
+        interaction_started: float | None = None,
+    ) -> None:
         transcript = self.transcribe(frames)
         command = self.strip_wake(transcript)
         print(f"\nYOU: {transcript}")
         self.logger.info("Transcript: %s", transcript)
+        if command != transcript.strip():
+            self.logger.info("Cleaned command after wake removal: %s", command)
 
         if not command:
-            self.say("Yes?")
+            self.say("Yes?", interaction_started)
             followup = self.record_followup()
             if followup is None:
                 return
             command = self.strip_wake(self.transcribe(followup).strip())
             print(f"YOU: {command}")
 
+        first_turn = True
         while command:
             if self.is_stop(command):
                 return
+
+            turn_started = interaction_started if first_turn else time.perf_counter()
+            first_turn = False
 
             try:
                 answer = self.brain.ask(command)
@@ -210,7 +260,7 @@ class Jarvis:
                 self.logger.exception("Brain request failed")
                 answer = self.friendly_error(exc)
 
-            self.say(answer)
+            self.say(answer, turn_started)
             followup = self.record_followup()
             if followup is None:
                 return
@@ -237,14 +287,23 @@ class Jarvis:
         if not frames:
             return ""
 
+        total_started = time.perf_counter()
+        audio_seconds = len(frames) * FRAME_MS / 1000
         path = self.temp_path(".wav")
         try:
+            encode_started = time.perf_counter()
             with wave.open(str(path), "wb") as wav_file:
                 wav_file.setnchannels(1)
                 wav_file.setsampwidth(2)
                 wav_file.setframerate(SAMPLE_RATE)
                 wav_file.writeframes(b"".join(frames))
+            self.logger.info(
+                "TIMING | WAV encode: %.3fs | audio=%.2fs",
+                time.perf_counter() - encode_started,
+                audio_seconds,
+            )
 
+            api_started = time.perf_counter()
             with path.open("rb") as audio_file:
                 result = self.client.audio.transcriptions.create(
                     model=self.settings.stt_model,
@@ -253,29 +312,50 @@ class Jarvis:
                     prompt=(
                         "The speaker may use Swedish, English, or both. "
                         "Expected words include Jarvis, Viktor, Home Assistant, "
-                        "Spotify, Steam, and smart-home commands."
+                        "Stockholm, Spotify, Steam, and smart-home commands."
                     ),
                 )
-            return str(result.text).strip()
+            api_elapsed = time.perf_counter() - api_started
+            transcript = str(result.text).strip()
+            self.logger.info(
+                "TIMING | STT API: %.3fs | audio=%.2fs | realtime_factor=%.2fx | "
+                "chars=%d",
+                api_elapsed,
+                audio_seconds,
+                api_elapsed / audio_seconds if audio_seconds > 0 else 0.0,
+                len(transcript),
+            )
+            self.logger.info(
+                "TIMING | STT total: %.3fs",
+                time.perf_counter() - total_started,
+            )
+            return transcript
         finally:
             path.unlink(missing_ok=True)
 
-    def say(self, text: str) -> None:
+    def say(self, text: str, turn_started: float | None = None) -> None:
         print(f"JARVIS: {text}\n")
         self.logger.info("Jarvis: %s", text)
 
         if not self.settings.tts_enabled:
+            if turn_started is not None:
+                self.logger.info(
+                    "TIMING | turn until text ready: %.3fs | TTS disabled",
+                    time.perf_counter() - turn_started,
+                )
             return
 
         speech = self.clean_speech(text)[:1800]
         if not speech:
             return
 
+        tts_total_started = time.perf_counter()
         path = self.temp_path(".wav")
         self.audio.speaking.set()
         self.audio.disable()
 
         try:
+            api_started = time.perf_counter()
             with self.client.audio.speech.with_streaming_response.create(
                 model=self.settings.tts_model,
                 voice=self.settings.tts_voice,
@@ -288,17 +368,52 @@ class Jarvis:
                 response_format="wav",
             ) as response:
                 response.stream_to_file(path)
+            self.logger.info(
+                "TIMING | TTS API + download: %.3fs | chars=%d",
+                time.perf_counter() - api_started,
+                len(speech),
+            )
 
+            decode_started = time.perf_counter()
             data, rate = sf.read(path, dtype="float32")
+            duration = len(data) / rate if rate else 0.0
+            self.logger.info(
+                "TIMING | TTS decode: %.3fs | generated_audio=%.2fs | rate=%d",
+                time.perf_counter() - decode_started,
+                duration,
+                rate,
+            )
+
+            if turn_started is not None:
+                self.logger.info(
+                    "TIMING | turn until playback starts: %.3fs",
+                    time.perf_counter() - turn_started,
+                )
+
+            playback_started = time.perf_counter()
             sd.play(
                 data,
                 rate,
                 device=self.settings.speaker_device,
                 blocking=True,
             )
+            self.logger.info(
+                "TIMING | playback: %.3fs | expected_audio=%.2fs",
+                time.perf_counter() - playback_started,
+                duration,
+            )
         except Exception:
             self.logger.exception("TTS or playback failed")
         finally:
+            self.logger.info(
+                "TIMING | TTS + playback total: %.3fs",
+                time.perf_counter() - tts_total_started,
+            )
+            if turn_started is not None:
+                self.logger.info(
+                    "TIMING | full turn through playback: %.3fs",
+                    time.perf_counter() - turn_started,
+                )
             path.unlink(missing_ok=True)
             time.sleep(0.15)
             self.audio.speaking.clear()
@@ -317,9 +432,12 @@ class Jarvis:
 
     @classmethod
     def strip_wake(cls, text: str) -> str:
-        text = text.strip()
-        match = cls.wake_regex.match(text)
-        return text[match.end() :].strip() if match else text
+        cleaned = text.strip()
+        while True:
+            match = cls.wake_regex.match(cleaned)
+            if not match:
+                return cleaned
+            cleaned = cleaned[match.end() :].lstrip(" \t\r\n.,:;!?-")
 
     @classmethod
     def is_stop(cls, text: str) -> bool:

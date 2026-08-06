@@ -7,6 +7,7 @@
       "Privileged skill operations are written to a local audit log, while high-impact actions are simulated during automated build tests. PC shutdown and restart remain in the separate double-confirmed Luna flow.",
       "All supported Jarvis settings can now be listed, searched, read, changed, or reset by voice through Luna, including models, TTS, microphone and speaker devices, wake detection, recording limits, updates, skills, logs, GitHub, and Home Assistant.",
       "Existing default interaction settings migrate automatically: the follow-up listening window increases from 4 to 5.5 seconds, normal spoken requests increase from 12 to 25 seconds, and the hard recording cutoff increases to 30 seconds.",
+      "Secrets spoken while changing protected settings are redacted from session logs, and secret values are never read back aloud.",
       "New camera, screenshot, input-control, clipboard, process, and system-information dependencies are installed automatically by the updater."
     ],
     "sv": [
@@ -15,6 +16,7 @@
       "Privilegierade skillåtgärder skrivs till en lokal granskningslogg, medan högriskåtgärder simuleras under automatiska byggtester. Avstängning och omstart ligger kvar i Lunas separata dubbelbekräftade flöde.",
       "Alla stödda Jarvis-inställningar kan nu listas, sökas, läsas, ändras eller återställas med rösten genom Luna, inklusive modeller, TTS, mikrofon och högtalare, wake-detektering, inspelningsgränser, uppdateringar, skills, loggar, GitHub och Home Assistant.",
       "Befintliga standardinställningar migreras automatiskt: följdfönstret ökar från 4 till 5,5 sekunder, vanliga talade frågor från 12 till 25 sekunder och den hårda inspelningsgränsen till 30 sekunder.",
+      "Hemliga värden som sägs vid ändring av skyddade inställningar maskeras i sessionsloggarna och läses aldrig tillbaka högt.",
       "Nya beroenden för kamera, skärmbilder, inmatningsstyrning, urklipp, processer och systeminformation installeras automatiskt av uppdateraren."
     ]
   },
@@ -73,6 +75,7 @@
     "jarvis_app/skill_approval_v092.py",
     "jarvis_app/privileged_skills_v092.py",
     "jarvis_app/voice_settings_v092.py",
+    "jarvis_app/privacy_v092.py",
     "requirements.txt",
     ".env.example",
     "README.md",

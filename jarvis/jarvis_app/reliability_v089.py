@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from io import BytesIO
 import logging
-import math
 import os
 from pathlib import Path
 import re
@@ -12,8 +11,6 @@ import threading
 import time
 from typing import Any
 import wave
-
-import numpy as np
 
 from .language_mode import detect_language
 from .paths import FRAME_MS, SAMPLE_RATE
@@ -127,7 +124,6 @@ def apply_patches() -> None:
     original_schemas = Tools.schemas
     original_call = Tools.call
 
-    # The v088 closure resolves this module global dynamically.
     reliability_v088._split_speech = _fast_split
 
     def patched_run(self: Any) -> None:

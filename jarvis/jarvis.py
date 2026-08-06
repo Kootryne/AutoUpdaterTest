@@ -21,6 +21,7 @@ from jarvis_app.skill_schema_fix_v093 import apply_patches as apply_schema_v093_
 from jarvis_app.update_reminders_v094 import apply_patches as apply_update_reminders_v094_patches
 from jarvis_app.skill_editing_v095 import apply_patches as apply_skill_editing_v095_patches
 from jarvis_app.github_issue_reader_v095 import apply_patches as apply_issue_reader_v095_patches
+from jarvis_app.update_bootstrap_v097 import apply_patches as apply_update_bootstrap_v097_patches
 
 apply_process_patches()
 apply_v08_patches()
@@ -45,6 +46,7 @@ apply_schema_v093_patches()
 apply_update_reminders_v094_patches()
 apply_skill_editing_v095_patches()
 apply_issue_reader_v095_patches()
+apply_update_bootstrap_v097_patches()
 
 from jarvis_app.main import main
 

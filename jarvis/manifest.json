@@ -1,23 +1,23 @@
 {
-  "version": "0.8.9",
+  "version": "0.9.0",
   "release_notes": {
     "en": [
-      "Each Jarvis run now gets a unique session ID, and every wake conversation is written to its own readable log, structured event JSONL, and transcript JSONL folder.",
-      "Session logs can be opened, listed, or exported to a ZIP on the desktop by voice, with configurable retention and basic redaction of secrets and email addresses.",
-      "Speech audio is encoded in memory instead of a temporary WAV file, removing occasional half-second disk stalls.",
-      "Local Kokoro speech is prewarmed before microphone startup and uses shorter cached chunks, moving its one-time model delay out of the first spoken answer.",
-      "Simple acknowledgments such as 'okay' now end silently without a Luna request or unnecessary TTS reply.",
-      "Short direct answers to a Jarvis question, including 'I forgot', are accepted locally instead of being rejected by the follow-up classifier.",
-      "Extremely quiet wake-only captures skip the paid STT request and continue directly to the normal 'Yes?' follow-up."
+      "All normal user-facing responses and command decisions now go through GPT-5.6 Luna instead of local regex handlers or prewritten replies.",
+      "Luna can inspect authoritative live state for models, TTS, sessions, updater, GitHub configuration, skills, and audio settings before answering.",
+      "PC shutdown and restart are now requested and confirmed through Luna tools, while local code only enforces two confirmations from two separate user turns and executes the final Windows action.",
+      "Wake-only interactions immediately listen for the next phrase without speaking a hard-coded 'Yes?' response.",
+      "Each captured command is transcribed once instead of being sent to STT twice by stacked wake-confirmation layers.",
+      "Local speech now uses multilingual Supertonic 3 for English and Swedish, generates the complete response in one synthesis call, caches results, and prewarms in the background without delaying microphone startup.",
+      "Jarvis-internal questions such as release notes, sessions, models, and TTS no longer incorrectly enable web search because of words such as 'latest'."
     ],
     "sv": [
-      "Varje Jarvis-körning får nu ett unikt sessions-ID, och varje wake-samtal skrivs till en egen läsbar logg, strukturerad event-JSONL och transcript-JSONL-mapp.",
-      "Sessionsloggar kan öppnas, listas eller exporteras till en ZIP på skrivbordet med rösten, med inställbar lagringstid och enkel maskering av hemligheter och e-postadresser.",
-      "Tal-ljud kodas i minnet i stället för via en temporär WAV-fil, vilket tar bort sporadiska diskfördröjningar på över en halv sekund.",
-      "Lokal Kokoro-talsyntes förvärms före mikrofonstart och använder kortare cachade delar, så engångsfördröjningen flyttas bort från det första talade svaret.",
-      "Enkla bekräftelser som 'okej' avslutar nu tyst utan Luna-anrop eller onödigt TTS-svar.",
-      "Korta direkta svar på en Jarvis-fråga, inklusive 'I forgot', accepteras lokalt i stället för att avvisas av följdfrågeklassificeraren.",
-      "Extremt tysta inspelningar som bara innehåller wake-frasen hoppar över det betalda STT-anropet och går direkt till den vanliga 'Yes?'-uppföljningen."
+      "Alla vanliga svar och kommandobeslut går nu genom GPT-5.6 Luna i stället för lokala regexhanterare eller färdigskrivna svar.",
+      "Luna kan läsa faktisk aktuell status för modeller, TTS, sessioner, uppdaterare, GitHub-anslutning, skills och ljudinställningar innan den svarar.",
+      "Avstängning och omstart begärs och bekräftas nu genom Luna-verktyg, medan lokal kod bara kräver två bekräftelser från två olika användarturer och kör den slutliga Windows-åtgärden.",
+      "När endast wake-frasen sägs börjar Jarvis lyssna på nästa fras direkt utan ett hårdkodat 'Yes?'-svar.",
+      "Varje inspelat kommando transkriberas en gång i stället för att skickas till STT två gånger av staplade wake-bekräftelselager.",
+      "Lokal talsyntes använder nu flerspråkiga Supertonic 3 för både engelska och svenska, genererar hela svaret i ett anrop, cachar resultat och förvärms i bakgrunden utan att fördröja mikrofonstarten.",
+      "Interna Jarvis-frågor om exempelvis release notes, sessioner, modeller och TTS aktiverar inte längre webbsökning bara på grund av ord som 'latest'."
     ]
   },
   "managed_files": [
@@ -65,6 +65,9 @@
     "jarvis_app/reliability_v087.py",
     "jarvis_app/reliability_v088.py",
     "jarvis_app/reliability_v089.py",
+    "jarvis_app/supertonic_tts.py",
+    "jarvis_app/reliability_v090.py",
+    "jarvis_app/safety_v090.py",
     "requirements.txt",
     ".env.example",
     "README.md",

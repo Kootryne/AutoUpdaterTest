@@ -13,6 +13,8 @@ from jarvis_app.reliability_v089 import apply_patches as apply_v089_patches
 from jarvis_app.reliability_v090 import apply_patches as apply_v090_patches
 from jarvis_app.safety_v090 import apply_patches as apply_safety_v090_patches
 from jarvis_app.reliability_v091 import apply_patches as apply_v091_patches
+from jarvis_app.privileged_skills_v092 import apply_patches as apply_privileged_v092_patches
+from jarvis_app.voice_settings_v092 import apply_patches as apply_settings_v092_patches
 
 apply_process_patches()
 apply_v08_patches()
@@ -29,6 +31,8 @@ apply_v089_patches()
 apply_v090_patches()
 apply_safety_v090_patches()
 apply_v091_patches()
+apply_privileged_v092_patches()
+apply_settings_v092_patches()
 
 from jarvis_app.main import main
 

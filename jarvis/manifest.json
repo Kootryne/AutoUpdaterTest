@@ -1,17 +1,23 @@
 {
-  "version": "0.8.8",
+  "version": "0.8.9",
   "release_notes": {
     "en": [
-      "PC shutdown and restart now use a local confirmation state machine that always owns the next two yes/no replies before any GitHub or skill confirmation can see them.",
-      "Incomplete requests such as 'shut off the...' ask whether the target is the PC or Jarvis, and short Swedish mis-transcriptions such as 'det är P' require an extra clarification before the two confirmations.",
-      "Power confirmations can recover safely from a previous GPT-written confirmation question, while stale GitHub capability approvals now expire after ten minutes.",
-      "English Kokoro speech is split into short cached chunks so repeated phrases start immediately and long replies can synthesize later chunks while earlier audio is playing."
+      "Each Jarvis run now gets a unique session ID, and every wake conversation is written to its own readable log, structured event JSONL, and transcript JSONL folder.",
+      "Session logs can be opened, listed, or exported to a ZIP on the desktop by voice, with configurable retention and basic redaction of secrets and email addresses.",
+      "Speech audio is encoded in memory instead of a temporary WAV file, removing occasional half-second disk stalls.",
+      "Local Kokoro speech is prewarmed before microphone startup and uses shorter cached chunks, moving its one-time model delay out of the first spoken answer.",
+      "Simple acknowledgments such as 'okay' now end silently without a Luna request or unnecessary TTS reply.",
+      "Short direct answers to a Jarvis question, including 'I forgot', are accepted locally instead of being rejected by the follow-up classifier.",
+      "Extremely quiet wake-only captures skip the paid STT request and continue directly to the normal 'Yes?' follow-up."
     ],
     "sv": [
-      "Avstängning och omstart av datorn använder nu ett lokalt bekräftelseflöde som alltid äger de två följande ja/nej-svaren innan GitHub- eller skillbekräftelser kan fånga dem.",
-      "Ofullständiga kommandon som 'shut off the...' frågar om målet är datorn eller Jarvis, och korta svenska feltranskriberingar som 'det är P' kräver en extra förtydligande fråga före de två bekräftelserna.",
-      "Datorbekräftelser kan återhämta sig säkert från en tidigare GPT-skriven bekräftelsefråga, medan gamla GitHub-godkännanden nu går ut efter tio minuter.",
-      "Engelsk Kokoro-talsyntes delas upp i korta cachade delar så att upprepade fraser startar direkt och längre svar kan syntetisera nästa del medan tidigare ljud spelas."
+      "Varje Jarvis-körning får nu ett unikt sessions-ID, och varje wake-samtal skrivs till en egen läsbar logg, strukturerad event-JSONL och transcript-JSONL-mapp.",
+      "Sessionsloggar kan öppnas, listas eller exporteras till en ZIP på skrivbordet med rösten, med inställbar lagringstid och enkel maskering av hemligheter och e-postadresser.",
+      "Tal-ljud kodas i minnet i stället för via en temporär WAV-fil, vilket tar bort sporadiska diskfördröjningar på över en halv sekund.",
+      "Lokal Kokoro-talsyntes förvärms före mikrofonstart och använder kortare cachade delar, så engångsfördröjningen flyttas bort från det första talade svaret.",
+      "Enkla bekräftelser som 'okej' avslutar nu tyst utan Luna-anrop eller onödigt TTS-svar.",
+      "Korta direkta svar på en Jarvis-fråga, inklusive 'I forgot', accepteras lokalt i stället för att avvisas av följdfrågeklassificeraren.",
+      "Extremt tysta inspelningar som bara innehåller wake-frasen hoppar över det betalda STT-anropet och går direkt till den vanliga 'Yes?'-uppföljningen."
     ]
   },
   "managed_files": [
@@ -20,6 +26,7 @@
     "jarvis_app/paths.py",
     "jarvis_app/settings.py",
     "jarvis_app/logging_utils.py",
+    "jarvis_app/session_logging.py",
     "jarvis_app/audio.py",
     "jarvis_app/home_assistant.py",
     "jarvis_app/tools.py",
@@ -57,6 +64,7 @@
     "jarvis_app/conversation_reliability_v086.py",
     "jarvis_app/reliability_v087.py",
     "jarvis_app/reliability_v088.py",
+    "jarvis_app/reliability_v089.py",
     "requirements.txt",
     ".env.example",
     "README.md",

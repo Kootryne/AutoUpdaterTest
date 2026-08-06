@@ -8,12 +8,22 @@ def apply_patches() -> None:
     if _PATCHED:
         return
 
+    from . import capability_flow
     from .skill_builder_v092 import patch_builder_and_runtime
     from .skill_approval_v092 import patch_skill_approval_flow
     from .skills import SkillSystem
 
     patch_builder_and_runtime()
     patch_skill_approval_flow()
+
+    prior_prepare = SkillSystem.prepare_privileged_build
+
+    def prepare_without_stale_confirmation(self: SkillSystem, **kwargs):
+        capability_flow._clear_pending()
+        return prior_prepare(self, **kwargs)
+
+    SkillSystem.prepare_privileged_build = prepare_without_stale_confirmation
+    SkillSystem.start_build = prepare_without_stale_confirmation
 
     prior_handles = SkillSystem.handles_tool
 

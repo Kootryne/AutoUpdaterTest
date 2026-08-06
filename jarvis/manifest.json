@@ -1,23 +1,17 @@
 {
-  "version": "0.9.0",
+  "version": "0.9.1",
   "release_notes": {
     "en": [
-      "All normal user-facing responses and command decisions now go through GPT-5.6 Luna instead of local regex handlers or prewritten replies.",
-      "Luna can inspect authoritative live state for models, TTS, sessions, updater, GitHub configuration, skills, and audio settings before answering.",
-      "PC shutdown and restart are now requested and confirmed through Luna tools, while local code only enforces two confirmations from two separate user turns and executes the final Windows action.",
-      "Wake-only interactions immediately listen for the next phrase without speaking a hard-coded 'Yes?' response.",
-      "Each captured command is transcribed once instead of being sent to STT twice by stacked wake-confirmation layers.",
-      "Local speech now uses multilingual Supertonic 3 for English and Swedish, generates the complete response in one synthesis call, caches results, and prewarms in the background without delaying microphone startup.",
-      "Jarvis-internal questions such as release notes, sessions, models, and TTS no longer incorrectly enable web search because of words such as 'latest'."
+      "Supertonic local speech now uses the supported balanced quality default of 8 steps instead of the previous 3-step setting that caused severely degraded voice quality.",
+      "Existing installations with a Supertonic quality value below 5 are migrated automatically to 8, and local voice, quality, and speed settings now persist separately from the environment file.",
+      "Luna can inspect local speech settings, list all ten built-in voices, preview a voice without selecting it, change voice or quality, benchmark speech, and create a desktop comparison pack.",
+      "Voice previews and configuration remain model-driven through Luna; no new hard-coded spoken responses were added."
     ],
     "sv": [
-      "Alla vanliga svar och kommandobeslut går nu genom GPT-5.6 Luna i stället för lokala regexhanterare eller färdigskrivna svar.",
-      "Luna kan läsa faktisk aktuell status för modeller, TTS, sessioner, uppdaterare, GitHub-anslutning, skills och ljudinställningar innan den svarar.",
-      "Avstängning och omstart begärs och bekräftas nu genom Luna-verktyg, medan lokal kod bara kräver två bekräftelser från två olika användarturer och kör den slutliga Windows-åtgärden.",
-      "När endast wake-frasen sägs börjar Jarvis lyssna på nästa fras direkt utan ett hårdkodat 'Yes?'-svar.",
-      "Varje inspelat kommando transkriberas en gång i stället för att skickas till STT två gånger av staplade wake-bekräftelselager.",
-      "Lokal talsyntes använder nu flerspråkiga Supertonic 3 för både engelska och svenska, genererar hela svaret i ett anrop, cachar resultat och förvärms i bakgrunden utan att fördröja mikrofonstarten.",
-      "Interna Jarvis-frågor om exempelvis release notes, sessioner, modeller och TTS aktiverar inte längre webbsökning bara på grund av ord som 'latest'."
+      "Supertonic använder nu den stödda balanserade kvalitetsnivån 8 steg i stället för den tidigare inställningen på 3 steg som gav kraftigt försämrad röstkvalitet.",
+      "Befintliga installationer med en Supertonic-kvalitet under 5 migreras automatiskt till 8, och lokal röst, kvalitet och hastighet sparas nu separat från miljöfilen.",
+      "Luna kan läsa röstinställningarna, lista alla tio inbyggda röster, förhandslyssna utan att välja, ändra röst eller kvalitet, mäta hastigheten och skapa ett jämförelsepaket på skrivbordet.",
+      "Förhandslyssning och konfiguration styrs fortsatt av Luna; inga nya hårdkodade talade svar har lagts till."
     ]
   },
   "managed_files": [
@@ -68,6 +62,7 @@
     "jarvis_app/supertonic_tts.py",
     "jarvis_app/reliability_v090.py",
     "jarvis_app/safety_v090.py",
+    "jarvis_app/reliability_v091.py",
     "requirements.txt",
     ".env.example",
     "README.md",

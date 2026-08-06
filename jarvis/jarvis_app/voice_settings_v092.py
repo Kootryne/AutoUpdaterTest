@@ -69,6 +69,11 @@ EXTRA_DEFAULTS: dict[str, Any] = {
     "SUPERTONIC_SILENCE_SECONDS": 0.12,
     "SUPERTONIC_CACHE_ITEMS": 256,
     "LOCAL_TTS_VOLUME": 1.0,
+    "LOCAL_TTS_SWEDISH_VOICE": "sv_SE-lisa-medium",
+    "LOCAL_TTS_KOKORO_VOICE": "bm_george",
+    "LOCAL_TTS_KOKORO_LANGUAGE": "en-gb",
+    "LOCAL_TTS_KOKORO_SPEED": 1.03,
+    "LOCAL_TTS_LENGTH_SCALE": 0.96,
     "FOLLOWUP_MIN_CAPTURE_RMS": 250.0,
     "WAKE_CONFIRM_THRESHOLD": 0.44,
     "WAKE_CONFIRM_HITS": 2,
@@ -192,6 +197,20 @@ def _default(settings: Any, env: str) -> Any:
     if attr is not None:
         return getattr(settings, attr)
     return EXTRA_DEFAULTS.get(env, "")
+
+
+def _factory_default(settings: Any, env: str) -> Any:
+    example = ENV_FILE.parent / ".env.example"
+    try:
+        data = example.read_text(encoding="utf-8")
+        match = re.search(rf"^\s*{re.escape(env)}\s*=\s*(.*?)\s*$", data, re.M)
+        if match:
+            return _parse(settings, env, match.group(1))
+    except Exception:
+        pass
+    if env in EXTRA_DEFAULTS:
+        return EXTRA_DEFAULTS[env]
+    return _current(settings, env)
 
 
 def _parse(settings: Any, env: str, value: Any) -> Any:
@@ -365,12 +384,13 @@ def apply_patches() -> None:
             }
         if action == "search":
             terms = [v for v in re.split(r"\s+", raw.lower()) if v]
-            return {
-                "matches": [
-                    key for key in known
-                    if all(term in key.lower().replace("_", " ") for term in terms)
-                ][:30]
-            }
+            matches = []
+            for key in known:
+                phrases = [key.lower().replace("_", " ")]
+                phrases.extend(alias for alias, target in ALIASES.items() if target == key)
+                if any(all(term in phrase for term in terms) for phrase in phrases):
+                    matches.append(key)
+            return {"matches": matches[:30]}
         if env not in known:
             return {"found": False, "error": f"Unknown setting: {raw}"}
         if action == "get":
@@ -386,7 +406,7 @@ def apply_patches() -> None:
             raise ValueError(f"Unsupported settings action: {action}")
 
         before = _current(jarvis.settings, env)
-        value = _default(jarvis.settings, env) if action == "reset" else _parse(
+        value = _factory_default(jarvis.settings, env) if action == "reset" else _parse(
             jarvis.settings, env, args.get("value")
         )
         _write(env, _encoded(value))

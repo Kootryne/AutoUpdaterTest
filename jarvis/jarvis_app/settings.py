@@ -135,11 +135,11 @@ class Settings:
             followup_end_silence=float(
                 os.getenv("FOLLOWUP_END_SILENCE_SECONDS", "0.75")
             ),
-            followup_timeout=float(os.getenv("FOLLOWUP_TIMEOUT_SECONDS", "4.0")),
+            followup_timeout=float(os.getenv("FOLLOWUP_TIMEOUT_SECONDS", "5.5")),
             followup_require_intent=env_bool("FOLLOWUP_REQUIRE_INTENT", True),
-            max_utterance=float(os.getenv("MAX_UTTERANCE_SECONDS", "12")),
+            max_utterance=float(os.getenv("MAX_UTTERANCE_SECONDS", "25")),
             hard_max_utterance=float(
-                os.getenv("HARD_MAX_UTTERANCE_SECONDS", "12")
+                os.getenv("HARD_MAX_UTTERANCE_SECONDS", "30")
             ),
             pre_roll=float(os.getenv("PRE_ROLL_SECONDS", "1.5")),
             timezone=os.getenv("TIMEZONE", "Europe/Stockholm").strip(),

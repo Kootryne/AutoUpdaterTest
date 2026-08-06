@@ -1,17 +1,21 @@
 {
-  "version": "0.9.1",
+  "version": "0.9.2",
   "release_notes": {
     "en": [
-      "Supertonic local speech now uses the supported balanced quality default of 8 steps instead of the previous 3-step setting that caused severely degraded voice quality.",
-      "Existing installations with a Supertonic quality value below 5 are migrated automatically to 8, and local voice, quality, and speed settings now persist separately from the environment file.",
-      "Luna can inspect local speech settings, list all ten built-in voices, preview a voice without selecting it, change voice or quality, benchmark speech, and create a desktop comparison pack.",
-      "Voice previews and configuration remain model-driven through Luna; no new hard-coded spoken responses were added."
+      "Jarvis can now build permission-approved skills that use direct HTTP requests, OpenAI web search and models, cameras, screenshots, files, programs and commands, keyboard and mouse control, clipboard access, environment variables, and system information.",
+      "Skill creation is now a two-step flow: Sol plans the exact permissions and risks, Luna asks once for explicit approval, and the installed skill keeps that approval without prompting on every use.",
+      "Privileged skill operations are written to a local audit log, while high-impact actions are simulated during automated build tests. PC shutdown and restart remain in the separate double-confirmed Luna flow.",
+      "All supported Jarvis settings can now be listed, searched, read, changed, or reset by voice through Luna, including models, TTS, microphone and speaker devices, wake detection, recording limits, updates, skills, logs, GitHub, and Home Assistant.",
+      "Existing default interaction settings migrate automatically: the follow-up listening window increases from 4 to 5.5 seconds, normal spoken requests increase from 12 to 25 seconds, and the hard recording cutoff increases to 30 seconds.",
+      "New camera, screenshot, input-control, clipboard, process, and system-information dependencies are installed automatically by the updater."
     ],
     "sv": [
-      "Supertonic använder nu den stödda balanserade kvalitetsnivån 8 steg i stället för den tidigare inställningen på 3 steg som gav kraftigt försämrad röstkvalitet.",
-      "Befintliga installationer med en Supertonic-kvalitet under 5 migreras automatiskt till 8, och lokal röst, kvalitet och hastighet sparas nu separat från miljöfilen.",
-      "Luna kan läsa röstinställningarna, lista alla tio inbyggda röster, förhandslyssna utan att välja, ändra röst eller kvalitet, mäta hastigheten och skapa ett jämförelsepaket på skrivbordet.",
-      "Förhandslyssning och konfiguration styrs fortsatt av Luna; inga nya hårdkodade talade svar har lagts till."
+      "Jarvis kan nu bygga behörighetsgodkända skills som använder direkta HTTP-anrop, OpenAI-webbsökning och modeller, kameror, skärmbilder, filer, program och kommandon, tangentbord och mus, urklipp, miljövariabler och systeminformation.",
+      "Skillbyggen använder nu två steg: Sol planerar exakta behörigheter och risker, Luna frågar en gång om uttryckligt godkännande, och den installerade skillen behåller godkännandet utan nya frågor vid varje användning.",
+      "Privilegierade skillåtgärder skrivs till en lokal granskningslogg, medan högriskåtgärder simuleras under automatiska byggtester. Avstängning och omstart ligger kvar i Lunas separata dubbelbekräftade flöde.",
+      "Alla stödda Jarvis-inställningar kan nu listas, sökas, läsas, ändras eller återställas med rösten genom Luna, inklusive modeller, TTS, mikrofon och högtalare, wake-detektering, inspelningsgränser, uppdateringar, skills, loggar, GitHub och Home Assistant.",
+      "Befintliga standardinställningar migreras automatiskt: följdfönstret ökar från 4 till 5,5 sekunder, vanliga talade frågor från 12 till 25 sekunder och den hårda inspelningsgränsen till 30 sekunder.",
+      "Nya beroenden för kamera, skärmbilder, inmatningsstyrning, urklipp, processer och systeminformation installeras automatiskt av uppdateraren."
     ]
   },
   "managed_files": [
@@ -63,6 +67,12 @@
     "jarvis_app/reliability_v090.py",
     "jarvis_app/safety_v090.py",
     "jarvis_app/reliability_v091.py",
+    "jarvis_app/privileged_skill_api.py",
+    "jarvis_app/privileged_skill_worker.py",
+    "jarvis_app/skill_builder_v092.py",
+    "jarvis_app/skill_approval_v092.py",
+    "jarvis_app/privileged_skills_v092.py",
+    "jarvis_app/voice_settings_v092.py",
     "requirements.txt",
     ".env.example",
     "README.md",

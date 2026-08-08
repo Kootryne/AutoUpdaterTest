@@ -22,6 +22,7 @@ from jarvis_app.github_issue_reader_v095 import apply_patches as apply_issue_rea
 from jarvis_app.update_bootstrap_v097 import apply_patches as apply_update_bootstrap_v097_patches
 from jarvis_app.self_modification_v098 import apply_patches as apply_self_modification_v098_patches
 from jarvis_app.adaptive_core_v099 import apply_patches as apply_adaptive_core_v099_patches
+from jarvis_app.self_modification_dependency_fix_v0910 import apply_patches as apply_self_mod_dependency_fix_v0910_patches
 
 apply_process_patches()
 apply_v08_patches()
@@ -47,6 +48,7 @@ apply_issue_reader_v095_patches()
 apply_update_bootstrap_v097_patches()
 apply_self_modification_v098_patches()
 apply_adaptive_core_v099_patches()
+apply_self_mod_dependency_fix_v0910_patches()
 
 from jarvis_app.main import main
 

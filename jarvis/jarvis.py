@@ -13,11 +13,14 @@ from jarvis_app.reliability_v089 import apply_patches as apply_v089_patches
 from jarvis_app.reliability_v090 import apply_patches as apply_v090_patches
 from jarvis_app.safety_v090 import apply_patches as apply_safety_v090_patches
 from jarvis_app.reliability_v091 import apply_patches as apply_v091_patches
+from jarvis_app.privileged_skills_v092 import apply_patches as apply_privileged_v092_patches
+from jarvis_app.camera_skill_test_reliability import apply_patches as apply_camera_skill_test_patches
 from jarvis_app.voice_settings_v092 import apply_patches as apply_settings_v092_patches
 from jarvis_app.privacy_v092 import apply_patches as apply_privacy_v092_patches
 from jarvis_app.reliability_v093 import apply_patches as apply_v093_patches
 from jarvis_app.skill_schema_fix_v093 import apply_patches as apply_schema_v093_patches
 from jarvis_app.update_reminders_v094 import apply_patches as apply_update_reminders_v094_patches
+from jarvis_app.skill_editing_v095 import apply_patches as apply_skill_editing_v095_patches
 from jarvis_app.github_issue_reader_v095 import apply_patches as apply_issue_reader_v095_patches
 from jarvis_app.update_bootstrap_v097 import apply_patches as apply_update_bootstrap_v097_patches
 from jarvis_app.self_modification_v098 import apply_patches as apply_self_modification_v098_patches
@@ -41,11 +44,14 @@ apply_v089_patches()
 apply_v090_patches()
 apply_safety_v090_patches()
 apply_v091_patches()
+apply_privileged_v092_patches()
+apply_camera_skill_test_patches()
 apply_settings_v092_patches()
 apply_privacy_v092_patches()
 apply_v093_patches()
 apply_schema_v093_patches()
 apply_update_reminders_v094_patches()
+apply_skill_editing_v095_patches()
 apply_issue_reader_v095_patches()
 apply_update_bootstrap_v097_patches()
 apply_self_modification_v098_patches()

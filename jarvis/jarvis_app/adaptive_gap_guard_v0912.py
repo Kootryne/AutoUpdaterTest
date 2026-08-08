@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
 
 from . import adaptive_gap_guard_v0911
 from . import self_modification_v098
 
 _PATCHED = False
+_V0911_DEAD_END = adaptive_gap_guard_v0911._looks_like_capability_dead_end
 
 _WEATHER_REQUEST_RE = re.compile(
     r"(?:"
@@ -65,10 +65,7 @@ def _is_technical_dead_end(value: str) -> bool:
         return False
     if adaptive_gap_guard_v0911._POLICY_REFUSAL_RE.search(text):
         return False
-    return bool(
-        _TECHNICAL_DEAD_END_RE.search(text)
-        or adaptive_gap_guard_v0911._looks_like_capability_dead_end(text)
-    )
+    return bool(_TECHNICAL_DEAD_END_RE.search(text) or _V0911_DEAD_END(text))
 
 
 def _recovery_prompt(user_text: str, failed_answer: str) -> str:
@@ -110,8 +107,8 @@ def apply_patches() -> None:
     current_ask = Brain.ask
     current_instructions = Brain.instructions
 
-    # Strengthen the v0.9.11 detector too, because its Brain.ask wrapper resolves
-    # this module global at runtime.
+    # The v0.9.11 Brain.ask wrapper resolves this global dynamically, so replacing
+    # it strengthens both the existing inner guard and the new outer guard.
     adaptive_gap_guard_v0911._looks_like_capability_dead_end = _is_technical_dead_end
 
     def needs_web(self: Brain, text: str) -> bool:
